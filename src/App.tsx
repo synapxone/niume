@@ -67,6 +67,14 @@ export default function App() {
         if ('Notification' in window) {
             Notification.requestPermission().catch(() => { });
         }
+
+        // Load user theme preference
+        const savedTheme = localStorage.getItem('app-theme') || 'dark';
+        if (savedTheme === 'light') {
+            document.documentElement.classList.add('light');
+        } else {
+            document.documentElement.classList.remove('light');
+        }
     }, []);
 
     useEffect(() => {

@@ -117,12 +117,19 @@ PERFIL DO USUÁRIO:
 - Peso: ${data.weight}kg | Altura: ${data.height}cm | Idade: ${data.age} anos
 - EXTREMAMENTE IMPORTANTE: Varie os exercícios. Este usuário se chama ${data.name || 'usuário'}, então garanta que este plano seja EXCLUSIVO e criativo, não repita um modelo padrão! Adapte à preferência de que o usuário só tem os equipamentos de: ${data.training_location}.
 
-INSTRUÇÕES:
-- Use IDs numéricos de exercícios do banco ExerciseDB (ex: "0009", "0094", "1347")
-- Para treino em casa sem equipamentos, use: bodyweight exercises (IDs: push-up, squat, lunge, plank, burpee, mountain-climber, jump-jack)
-- Crie um plano de 4-8 semanas com progressão
-- Máximo de ${Math.floor(data.available_minutes / 5)} exercícios por dia
-- Inclua dias de descanso
+INSTRUÇÕES OBRIGATÓRIAS:
+- Crie um plano de 4-8 semanas com progressão.
+- CRÍTICO: Planeje os treinos para SEGUNDA a DOMINGO (7 dias na semana "days": [{"day": 1}, ..., {"day": 7}]).
+- Use divisões musculares modernas e eficientes, EXATAMENTE (ou similar) variando pelos dias da semana. Exemplo de divisão:
+  Dia 1 (Segunda): Peito e Tríceps
+  Dia 2 (Terça): Descanso ou Cardio leve
+  Dia 3 (Quarta): Pernas e Costas
+  Dia 4 (Quinta): Descanso
+  Dia 5 (Sexta): Só Ombros e Abdômen
+  Dia 6 e 7: Outras combinações ou Descanso
+- A chave "exercise_id" DEVE SER OBRIGATORIAMENTE um ID numérico de 4 dígitos do banco ExerciseDB (ex: "0009", "0094", "1347", "3214", "0043"). NUNCA use palavras (como "push-up") no campo "exercise_id"!
+- Se for treino em casa, use os IDs numéricos mais próximos do exercício: "0009" (Flexão), "0685" (Agachamento), "0001" (Abdominal), "3214" (Burpee), "1374" (Prancha).
+- Máximo de ${Math.floor(data.available_minutes / 5)} exercícios por dia.
 
 Retorne APENAS JSON válido:
 {
@@ -208,9 +215,9 @@ PERFIL DO USUÁRIO:
 - Peso: ${profile.weight}kg | Altura: ${profile.height}cm | Idade: ${profile.age} anos
 - NOME/DIA: Quero um treino para o dia: ${dayName}
 
-INSTRUÇÕES:
-- Use IDs numéricos de exercícios do banco ExerciseDB (ex: "0009", "0094", "1347")
-- Para treino em casa sem equipamentos, use push-up, squat, lunge, plank, burpee, mountain-climber, jump-jack
+INSTRUÇÕES OBRIGATÓRIAS:
+- A chave "exercise_id" DEVE SER OBRIGATORIAMENTE um ID numérico de 4 dígitos do banco ExerciseDB (ex: "0009", "0094", "1347", "3214", "0043"). NUNCA use palavras (como "push-up") no campo "exercise_id"!
+- Se for treino em casa, use os IDs numéricos mais próximos do exercício: "0009" (Flexão), "0685" (Agachamento), "0001" (Abdominal), "3214" (Burpee), "1374" (Prancha).
 - Máximo de ${Math.floor(availableMinutes / 5)} exercícios
 - Crie um treino único (para apenas 1 dia) considerando o tempo e local acima informados.
 Se os minutos forem curtos (ex: 20 min), sugira um HIIT ou Full Body rápido.

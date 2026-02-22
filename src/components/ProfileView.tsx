@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LogOut, Pencil, Plus, X, Camera, Loader2, TrendingDown, TrendingUp, Minus, Sparkles } from 'lucide-react';
+import { LogOut, Pencil, Plus, X, Camera, Loader2, TrendingDown, TrendingUp, Minus, Sparkles, Moon } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { supabase } from '../lib/supabase';
 import { geminiService } from '../services/geminiService';
@@ -56,6 +56,21 @@ export default function ProfileView({ profile, onSignOut, onRefresh }: Props) {
 
     // View full photo
     const [viewEntry, setViewEntry] = useState<ProgressEntry | null>(null);
+
+    // Theme state
+    const [isLightMode, setIsLightMode] = useState(() => document.documentElement.classList.contains('light'));
+
+    function toggleTheme() {
+        const nextLight = !isLightMode;
+        setIsLightMode(nextLight);
+        if (nextLight) {
+            document.documentElement.classList.add('light');
+            localStorage.setItem('app-theme', 'light');
+        } else {
+            document.documentElement.classList.remove('light');
+            localStorage.setItem('app-theme', 'dark');
+        }
+    }
 
     useEffect(() => {
         loadEntries();
@@ -340,6 +355,25 @@ export default function ProfileView({ profile, onSignOut, onRefresh }: Props) {
                         })}
                     </div>
                 )}
+            </div>
+
+            {/* Theme Toggle */}
+            <div className="rounded-2xl p-5 bg-white/[0.02] border border-white/5 backdrop-blur-sm mt-2 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/5 flex items-center justify-center">
+                        <Moon size={18} className="text-gray-400" />
+                    </div>
+                    <div>
+                        <p className="text-white font-semibold text-sm">Aparência do App</p>
+                        <p className="text-gray-500 text-[11px]">Alternar modo claro e escuro</p>
+                    </div>
+                </div>
+                <button
+                    onClick={toggleTheme}
+                    className="px-4 py-2 rounded-lg text-[11px] font-bold uppercase tracking-wider bg-white/10 hover:bg-white/20 text-white transition-colors"
+                >
+                    {isLightMode ? 'Ativar Escuro' : 'Ativar Claro'}
+                </button>
             </div>
 
             {/* Sign out */}
