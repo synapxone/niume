@@ -62,6 +62,19 @@ export default function Dashboard({ profile, workoutPlan, gamification, onSignOu
 
     const todayWorkout = getTodayWorkout(workoutPlan);
 
+    // Calc Dedication Score (min 32.5, max 100)
+    const dedication = gamification
+        ? Math.min(100, Math.max(32.5, (gamification.streak_days * 5) + (gamification.total_workouts * 3) + (gamification.total_meals_logged * 1)))
+        : 32.5;
+
+    // Estimate total weight moved from localStorage
+    const totalWeight = Object.keys(localStorage)
+        .filter(k => k.startsWith('weight_'))
+        .reduce((acc, k) => acc + (parseFloat(localStorage.getItem(k) || '0') || 0), 0) * (gamification?.total_workouts || 1); // rough estimate
+
+    // Total Cals burned roughly
+    const calsBurned = (gamification?.total_workouts || 0) * 350;
+
     return (
         <div className="min-h-screen flex flex-col" style={{ backgroundColor: '#0F0F1A' }}>
             {/* Top header */}
@@ -121,20 +134,37 @@ export default function Dashboard({ profile, workoutPlan, gamification, onSignOu
                                         sub="kcal/dia"
                                         color="#F59E0B"
                                     />
-                                    {/* Streak */}
+                                    {/* --- Novos Gráficos Solicitados --- */}
+                                    {/* Total Weight */}
                                     <StatCard
-                                        emoji="🔥"
-                                        label="Sequência"
-                                        value={`${gamification?.streak_days ?? 0}`}
-                                        sub="dias consecutivos"
-                                        color="#EF4444"
+                                        emoji="🏋️"
+                                        label="Peso Total Deste Plano"
+                                        value={`${totalWeight} kg`}
+                                        sub="levantados (estimativa)"
+                                        color="#3B82F6"
                                     />
-                                    {/* Points */}
+                                    {/* Dedicação */}
                                     <StatCard
-                                        emoji="⭐"
-                                        label="Pontos"
-                                        value={`${gamification?.points ?? 0}`}
-                                        sub={`Nível ${gamification?.level ?? 1}`}
+                                        emoji="🏆"
+                                        label="Sua Dedicação"
+                                        value={`${dedication.toFixed(1)}`}
+                                        sub="Nota de 0 a 100"
+                                        color="#10B981"
+                                    />
+                                    {/* Frequencia */}
+                                    <StatCard
+                                        emoji="📅"
+                                        label="Frequência"
+                                        value={`${gamification?.total_workouts || 0}`}
+                                        sub="Treinos Concluídos"
+                                        color="#EC4899"
+                                    />
+                                    {/* Calorias Queimadas */}
+                                    <StatCard
+                                        emoji="💧"
+                                        label="Cal. Queimadas"
+                                        value={`${calsBurned}`}
+                                        sub="kcal totais gastas"
                                         color="#F59E0B"
                                     />
                                 </div>
@@ -191,12 +221,12 @@ export default function Dashboard({ profile, workoutPlan, gamification, onSignOu
                                     plan={workoutPlan}
                                     profile={profile}
                                     onComplete={(_pts) => { onRefresh(); }}
-                                  />
+                                />
                                 : <div className="flex flex-col items-center justify-center py-24 px-6 text-center gap-4">
                                     <span className="text-5xl">😕</span>
                                     <p className="text-white font-bold text-lg">Nenhum plano ativo</p>
                                     <p className="text-gray-400 text-sm">Você ainda não tem um plano de treino. Complete o onboarding para gerar um.</p>
-                                  </div>
+                                </div>
                         )}
 
                         {/* ===== NUTRITION TAB ===== */}

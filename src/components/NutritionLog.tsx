@@ -57,6 +57,7 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
     const [meals, setMeals] = useState<Meal[]>([]);
     const [history, setHistory] = useState<{ date: string; calories: number }[]>([]);
     const [loading, setLoading] = useState(true);
+    const [waterCups, setWaterCups] = useState(0);
     const [showModal, setShowModal] = useState(false);
     const [modalMealType, setModalMealType] = useState<MealType>('breakfast');
     const [modalMode, setModalMode] = useState<'choose' | 'photo' | 'manual'>('choose');
@@ -96,6 +97,8 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
 
     useEffect(() => {
         loadData();
+        const saved = localStorage.getItem(`water_${profile.id}_${today()}`);
+        if (saved) setWaterCups(parseInt(saved));
     }, []);
 
     async function loadData() {
@@ -427,8 +430,37 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
         );
     }
 
+    const waterGoalMl = profile.weight * 35;
+    const goalCups = Math.ceil(waterGoalMl / 250);
+
+    const handleCupClick = (idx: number) => {
+        setWaterCups(prev => {
+            let n = idx + 1;
+            if (prev === n) n--;
+            localStorage.setItem(`water_${profile.id}_${today()}`, n.toString());
+            return n;
+        });
+    };
+
     return (
         <div className="flex flex-col px-4 py-5 gap-5 max-w-lg mx-auto">
+            {/* Water Tracker */}
+            <div className="rounded-2xl p-4 flex flex-col items-center justify-center gap-2" style={{ backgroundColor: '#1A1A2E', border: '1px solid rgba(59,130,246,0.3)' }}>
+                <p className="text-sm font-bold text-white flex items-center gap-1">💧 Meta de Água: {Math.max(1, goalCups)} copos ({waterGoalMl} ml)</p>
+                <div className="flex gap-2 flex-wrap justify-center mt-1">
+                    {Array.from({ length: goalCups }).map((_, i) => (
+                        <button
+                            key={i}
+                            onClick={() => handleCupClick(i)}
+                            className="text-2xl hover:scale-110 transition-transform"
+                            style={{ opacity: i < waterCups ? 1 : 0.3 }}
+                        >
+                            🥤
+                        </button>
+                    ))}
+                </div>
+            </div>
+
             {/* Calorie ring */}
             <div className="flex flex-col items-center gap-2">
                 <div className="relative w-36 h-36">

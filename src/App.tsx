@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Toaster } from 'react-hot-toast';
+import { Toaster, toast } from 'react-hot-toast';
 import { supabase } from './lib/supabase';
 import type { Session } from '@supabase/supabase-js';
 import type { Profile, OnboardingData, WorkoutPlan, Gamification } from './types';
@@ -62,6 +62,44 @@ export default function App() {
             loadingRef.current = false;
         }
     }
+
+    useEffect(() => {
+        if ('Notification' in window) {
+            Notification.requestPermission().catch(() => { });
+        }
+    }, []);
+
+    useEffect(() => {
+        if (!profile) return;
+        const interval = setInterval(async () => {
+            const now = new Date();
+            const hr = now.getHours();
+            const min = now.getMinutes();
+            // Check at exactly 14:00 (lunch) or 20:30 (dinner)
+            if ((hr === 14 && min === 0) || (hr === 20 && min === 30)) {
+                const date = now.toISOString().split('T')[0];
+                const typeToCheck = hr === 14 ? 'lunch' : 'dinner';
+                const { data } = await supabase.from('meals')
+                    .select('id')
+                    .eq('user_id', profile.id)
+                    .eq('meal_date', date)
+                    .eq('meal_type', typeToCheck);
+
+                if (!data || data.length === 0) {
+                    const msg = hr === 14
+                        ? 'São 14h! Já almoçou? Não esqueça de registrar seu almoço.'
+                        : 'Já são 20h30! Lembre-se de registrar o jantar de hoje.';
+
+                    if ('Notification' in window && Notification.permission === 'granted') {
+                        new Notification('Personall', { body: msg });
+                    } else {
+                        toast(msg, { icon: '🔔', duration: 10000 });
+                    }
+                }
+            }
+        }, 60000); // checks every minute
+        return () => clearInterval(interval);
+    }, [profile]);
 
     async function handleOnboardingComplete(data: OnboardingData, workoutPlanData: any) {
         if (!session) return;

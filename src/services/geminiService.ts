@@ -115,6 +115,7 @@ PERFIL DO USUÁRIO:
 - Tempo disponível: ${data.available_minutes} minutos por dia
 - Nível de atividade atual: ${data.activity_level}
 - Peso: ${data.weight}kg | Altura: ${data.height}cm | Idade: ${data.age} anos
+- EXTREMAMENTE IMPORTANTE: Varie os exercícios. Este usuário se chama ${data.name || 'usuário'}, então garanta que este plano seja EXCLUSIVO e criativo, não repita um modelo padrão! Adapte à preferência de que o usuário só tem os equipamentos de: ${data.training_location}.
 
 INSTRUÇÕES:
 - Use IDs numéricos de exercícios do banco ExerciseDB (ex: "0009", "0094", "1347")
@@ -142,6 +143,7 @@ Retorne APENAS JSON válido:
               "name": "Nome do Exercício",
               "sets": 3,
               "reps": "10-12",
+              "recommended_weight": "10kg",
               "rest_seconds": 60,
               "instructions": "Como executar corretamente",
               "tips": "Dica importante"

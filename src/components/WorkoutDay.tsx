@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, ChevronUp, Check, Timer, Trophy, Play, Pause, Square, Save, Copy } from 'lucide-react';
+import { ChevronDown, ChevronUp, Check, Timer, Trophy, Play, Pause, Square, Save, Copy, Dumbbell } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { exerciseService } from '../services/exerciseService';
 import { POINTS } from '../types';
@@ -267,7 +267,7 @@ export default function WorkoutDayView({ plan, profile, onComplete }: Props) {
                 duration_minutes: elapsed,
                 points_earned: pts,
                 completed: allDone,
-            });
+            }).throwOnError();
 
             try {
                 await supabase.rpc('add_points', { p_user_id: profile.id, p_points: pts });
@@ -284,6 +284,9 @@ export default function WorkoutDayView({ plan, profile, onComplete }: Props) {
 
             setSessionDone(true);
             onComplete(pts);
+        } catch (e: any) {
+            console.error('Error saving workout:', e);
+            alert('Não foi possível salvar o treino. Verifique sua conexão e tente novamente.');
         } finally {
             setSaving(false);
         }
@@ -528,6 +531,13 @@ export default function WorkoutDayView({ plan, profile, onComplete }: Props) {
                                             <div className="mt-2 text-sm">
                                                 <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide mb-1">Como executar</p>
                                                 <p className="text-gray-300">{exercise.instructions}</p>
+                                                {exercise.recommended_weight && (
+                                                    <div className="mt-3 p-3 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 flex items-center gap-2 text-sm font-medium">
+                                                        <Dumbbell size={16} />
+                                                        <span>Sugestão da IA: {exercise.recommended_weight}</span>
+                                                    </div>
+                                                )}
+                                                {exercise.tips && <p className="text-purple-300/80 text-xs mt-2 italic">💡 Dica: {exercise.tips}</p>}
                                             </div>
 
                                             {gifUrl && (

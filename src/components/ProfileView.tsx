@@ -248,6 +248,19 @@ export default function ProfileView({ profile, onSignOut, onRefresh }: Props) {
                 </div>
             </div>
 
+            {/* Body Analysis Display */}
+            {profile.body_analysis && (
+                <div className="rounded-2xl p-4" style={{ backgroundColor: '#1A1A2E', border: '1px solid rgba(124,58,237,0.2)' }}>
+                    <div className="flex items-center gap-2 mb-2">
+                        <span className="text-xl">🤖</span>
+                        <span className="text-sm font-bold text-white">Análise Física por IA</span>
+                    </div>
+                    <div className="text-sm text-gray-300 leading-relaxed whitespace-pre-wrap">
+                        {profile.body_analysis}
+                    </div>
+                </div>
+            )}
+
             {/* Register progress button */}
             <motion.button
                 whileTap={{ scale: 0.97 }}

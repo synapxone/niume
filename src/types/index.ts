@@ -40,6 +40,7 @@ export type Exercise = {
   rest_seconds: number;
   instructions: string;
   tips?: string;
+  recommended_weight?: string;
   gif_url?: string;      // filled by exerciseService
 };
 
@@ -213,11 +214,11 @@ export type ExerciseDBItem = {
 
 // Available rewards catalog
 export const REWARDS_CATALOG: Reward[] = [
-  { id: 'choc',    emoji: '🍫', name: 'Barra de Chocolate',  description: 'Coma uma barrinha de chocolate à vontade!',       cost: 500  },
-  { id: 'cake',    emoji: '🍰', name: 'Sobremesa Completa',   description: 'Peça aquela sobremesa que você estava evitando.',  cost: 800  },
-  { id: 'pizza',   emoji: '🍕', name: 'Fatia de Pizza',       description: 'Uma fatia de pizza sem culpa!',                   cost: 1000 },
-  { id: 'burger',  emoji: '🍔', name: 'Hambúrguer',           description: 'Hambúrguer artesanal, você merece!',              cost: 2000 },
-  { id: 'freedom', emoji: '🎉', name: 'Dia Livre de Dieta',   description: 'Um dia inteiro sem restrições — coma o que quiser!', cost: 5000 },
+  { id: 'choc', emoji: '🍫', name: 'Barra de Chocolate', description: 'Coma uma barrinha de chocolate à vontade!', cost: 500 },
+  { id: 'cake', emoji: '🍰', name: 'Sobremesa Completa', description: 'Peça aquela sobremesa que você estava evitando.', cost: 800 },
+  { id: 'pizza', emoji: '🍕', name: 'Fatia de Pizza', description: 'Uma fatia de pizza sem culpa!', cost: 1000 },
+  { id: 'burger', emoji: '🍔', name: 'Hambúrguer', description: 'Hambúrguer artesanal, você merece!', cost: 2000 },
+  { id: 'freedom', emoji: '🎉', name: 'Dia Livre de Dieta', description: 'Um dia inteiro sem restrições — coma o que quiser!', cost: 5000 },
 ];
 
 // Level XP thresholds: level N needs N * 200 XP
@@ -227,9 +228,9 @@ export function xpForLevel(level: number): number {
 
 // Points per action
 export const POINTS = {
-  WORKOUT_COMPLETE:  150,
-  WORKOUT_PARTIAL:   75,
-  MEAL_LOGGED:       25,
-  STREAK_BONUS:      10,   // per consecutive day
-  BODY_PHOTO:        50,
+  WORKOUT_COMPLETE: 150,
+  WORKOUT_PARTIAL: 75,
+  MEAL_LOGGED: 25,
+  STREAK_BONUS: 10,   // per consecutive day
+  BODY_PHOTO: 50,
 } as const;
