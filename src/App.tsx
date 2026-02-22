@@ -63,7 +63,7 @@ export default function App() {
         }
     }
 
-    async function handleOnboardingComplete(data: OnboardingData, workoutPlanData: any, _dietPlan: any) {
+    async function handleOnboardingComplete(data: OnboardingData, workoutPlanData: any) {
         if (!session) return;
         setLoading(true);
         const userId = session.user.id;

@@ -74,7 +74,7 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
     const [suggestions, setSuggestions] = useState<string[]>([]);
     const [suggestLoading, setSuggestLoading] = useState(false);
     const [showSuggestions, setShowSuggestions] = useState(false);
-    const [formQty, setFormQty] = useState<number>(1);
+    const [formQty, setFormQty] = useState<number | string>('');
     const [formUnit, setFormUnit] = useState('');
     const [unitOptions, setUnitOptions] = useState<string[]>([]);
     const [unitsLoading, setUnitsLoading] = useState(false);
@@ -142,7 +142,7 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
 
     function resetForm() {
         setFormDesc(''); setFormCal(0); setFormProt(0); setFormCarbs(0); setFormFat(0);
-        setFormQty(1); setFormUnit(''); setUnitOptions([]);
+        setFormQty(''); setFormUnit(''); setUnitOptions([]);
         setAnalyzed(false); setSuggestions([]); setShowSuggestions(false);
         if (debounceRef.current) clearTimeout(debounceRef.current);
         if (suggestDebounceRef.current) clearTimeout(suggestDebounceRef.current);
@@ -150,8 +150,8 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
     }
 
     const analyzeText = useCallback(async (food: string, qty: number, unit: string) => {
-        if (!food.trim() || food.trim().length < 3) return;
-        const fullDesc = unit ? `${qty} ${unit} de ${food}` : food;
+        const numQty = typeof qty === 'number' ? qty : 1;
+        const fullDesc = unit ? `${numQty} ${unit} de ${food}` : food;
         setAnalyzeLoading(true);
         setAnalyzed(false);
         try {
@@ -187,14 +187,17 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
         setAnalyzed(false);
         setShowSuggestions(false);
         setUnitOptions([]); setFormUnit('');
-        if (suggestDebounceRef.current) clearTimeout(suggestDebounceRef.current);
-        suggestDebounceRef.current = setTimeout(() => fetchSuggestions(value), 500);
-        if (debounceRef.current) clearTimeout(debounceRef.current);
-        if (value.trim().length >= 3) {
-            debounceRef.current = setTimeout(() => {
-                loadUnitsAndAnalyze(value, 1, '');
-            }, 2000);
-        }
+    }
+
+    function onSearch() {
+        if (formDesc.trim().length < 2) return;
+        fetchSuggestions(formDesc);
+    }
+
+    function onAddDirectly() {
+        if (formDesc.trim().length < 2) return;
+        setFormQty(1);
+        loadUnitsAndAnalyze(formDesc, 1, '');
     }
 
     async function loadUnitsAndAnalyze(food: string, qty: number, unit: string) {
@@ -222,16 +225,18 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
         loadUnitsAndAnalyze(item, 1, '');
     }
 
-    function handleQtyChange(qty: number) {
+    function handleQtyChange(qty: number | string) {
         setFormQty(qty);
         setAnalyzed(false);
         if (qtyDebounceRef.current) clearTimeout(qtyDebounceRef.current);
-        qtyDebounceRef.current = setTimeout(() => analyzeText(formDesc, qty, formUnit), 800);
+        const numQty = typeof qty === 'number' ? qty : 1;
+        qtyDebounceRef.current = setTimeout(() => analyzeText(formDesc, numQty, formUnit), 800);
     }
 
     function handleUnitChange(unit: string) {
         setFormUnit(unit);
-        analyzeText(formDesc, formQty, unit);
+        const numQty = typeof formQty === 'number' ? formQty : 1;
+        analyzeText(formDesc, numQty, unit);
     }
 
     async function handlePhotoAnalysis(file: File) {
@@ -247,8 +252,9 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
             setFormFat(result.fat);
             setAnalyzed(true);
             setModalMode('manual');
-        } catch {
-            toast.error('Não foi possível analisar a foto. Preencha manualmente.');
+        } catch (e) {
+            console.error('Photo analysis error', e);
+            toast.error('Não foi possível analisar a foto. Tente tirar a foto mais de perto ou preencha manualmente.');
             setModalMode('manual');
         } finally {
             setAnalyzeLoading(false);
@@ -276,7 +282,8 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
             return;
         }
         setSaving(true);
-        const fullDescription = formUnit ? `${formQty} ${formUnit} de ${formDesc}` : formDesc;
+        const numQty = typeof formQty === 'number' ? formQty : 1;
+        const fullDescription = formUnit ? `${numQty} ${formUnit} de ${formDesc}` : formDesc;
         const mealData = {
             user_id: profile.id,
             meal_date: today(),
@@ -591,7 +598,10 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
                                                 placeholder="Ex: pão, arroz com frango, banana..."
                                                 value={formDesc}
                                                 onChange={(e) => handleDescChange(e.target.value)}
-                                                onKeyDown={(e) => { if (e.key === 'Escape') setShowSuggestions(false); }}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Escape') setShowSuggestions(false);
+                                                    if (e.key === 'Enter') onAddDirectly();
+                                                }}
                                                 className="w-full px-3 py-3 pr-10 rounded-xl text-white text-sm outline-none"
                                                 style={{ backgroundColor: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
                                             />
@@ -611,7 +621,7 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
                                                         animate={{ opacity: 1, y: 0 }}
                                                         exit={{ opacity: 0, y: -4 }}
                                                         transition={{ duration: 0.15 }}
-                                                        className="absolute left-0 right-0 top-full mt-1 rounded-xl overflow-hidden z-10"
+                                                        className="absolute left-0 right-0 top-full mt-1 rounded-xl overflow-hidden z-20"
                                                         style={{ backgroundColor: '#12122A', border: '1px solid rgba(124,58,237,0.3)', boxShadow: '0 8px 24px rgba(0,0,0,0.5)' }}
                                                     >
                                                         {suggestions.map((item, i) => (
@@ -630,16 +640,39 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
                                                 )}
                                             </AnimatePresence>
                                         </div>
-                                        <p className="text-gray-600 text-xs">
-                                            {analyzeLoading ? 'Calculando nutrientes com IA...'
-                                                : suggestLoading ? 'Buscando sugestões...'
-                                                    : analyzed ? 'Nutrientes calculados automaticamente ✓'
-                                                        : 'Digite e escolha uma opção ou pressione Enter'}
+
+                                        <div className="flex gap-2 mt-2">
+                                            <button
+                                                onClick={onSearch}
+                                                disabled={formDesc.trim().length < 2 || suggestLoading}
+                                                className="flex-1 py-2 rounded-lg text-xs font-semibold text-white transition-colors"
+                                                style={{ backgroundColor: 'rgba(124,58,237,0.2)', border: '1px solid rgba(124,58,237,0.4)', opacity: formDesc.trim().length < 2 ? 0.5 : 1 }}
+                                            >
+                                                {suggestLoading ? 'Buscando...' : 'Buscar'}
+                                            </button>
+                                            <button
+                                                onClick={onAddDirectly}
+                                                disabled={formDesc.trim().length < 2 || analyzeLoading}
+                                                className="flex-1 py-2 rounded-lg text-xs font-bold text-white transition-colors"
+                                                style={{ background: 'linear-gradient(135deg, #10B981, #059669)', opacity: formDesc.trim().length < 2 ? 0.5 : 1 }}
+                                            >
+                                                {analyzeLoading ? 'Calculando...' : 'Adicionar'}
+                                            </button>
+                                        </div>
+
+                                        <p className="text-gray-600 text-xs mt-1">
+                                            <AnimatePresence>
+                                                {analyzed && (
+                                                    <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-emerald-500 font-semibold mb-1">
+                                                        Nutrientes calculados automaticamente ✓
+                                                    </motion.span>
+                                                )}
+                                            </AnimatePresence>
                                         </p>
                                     </div>
 
                                     {/* Quantity + Unit selector */}
-                                    {(unitOptions.length > 0 || unitsLoading) && (
+                                    {(unitOptions.length > 0 || unitsLoading || analyzed) && (
                                         <div className="flex flex-col gap-2">
                                             <label className="text-gray-400 text-xs font-medium">Quantidade</label>
                                             <div className="flex gap-3 items-center">
@@ -648,7 +681,8 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
                                                     min={0.25}
                                                     step={0.25}
                                                     value={formQty}
-                                                    onChange={(e) => handleQtyChange(parseFloat(e.target.value) || 1)}
+                                                    placeholder="1"
+                                                    onChange={(e) => handleQtyChange(e.target.value === '' ? '' : parseFloat(e.target.value))}
                                                     className="w-20 px-3 py-2.5 rounded-xl text-white text-sm font-bold text-center outline-none"
                                                     style={{ backgroundColor: 'rgba(124,58,237,0.15)', border: '1px solid rgba(124,58,237,0.4)' }}
                                                 />

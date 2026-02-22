@@ -2,7 +2,7 @@ import type { OnboardingData, FoodAnalysis } from '../types';
 
 const API_KEY = import.meta.env.VITE_GEMINI_API_KEY || '';
 const BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/models';
-const MODELS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash'];
+const MODELS = ['gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-2.5-flash-lite'];
 
 async function callGemini(model: string, prompt: string, timeoutMs = 60000): Promise<string> {
     const controller = new AbortController();
@@ -174,10 +174,12 @@ Retorne APENAS JSON válido:
             weeks: [{
                 week: 1,
                 days: [
-                    { day: 1, name: 'Treino Full Body A', type: 'strength', exercises: [
-                        { exercise_id: '0009', name: 'Flexão de Braço', sets: 3, reps: '10-15', rest_seconds: 60, instructions: 'Mantenha o corpo reto.', tips: 'Respire ao descer.' },
-                        { exercise_id: '0685', name: 'Agachamento', sets: 3, reps: '15-20', rest_seconds: 60, instructions: 'Pés na largura dos ombros.', tips: 'Joelhos não passem dos pés.' },
-                    ]},
+                    {
+                        day: 1, name: 'Treino Full Body A', type: 'strength', exercises: [
+                            { exercise_id: '0009', name: 'Flexão de Braço', sets: 3, reps: '10-15', rest_seconds: 60, instructions: 'Mantenha o corpo reto.', tips: 'Respire ao descer.' },
+                            { exercise_id: '0685', name: 'Agachamento', sets: 3, reps: '15-20', rest_seconds: 60, instructions: 'Pés na largura dos ombros.', tips: 'Joelhos não passem dos pés.' },
+                        ]
+                    },
                     { day: 2, name: 'Descanso', type: 'rest', exercises: [] },
                 ]
             }],
@@ -255,7 +257,7 @@ Seja encorajador e construtivo. Máximo 3 parágrafos.`;
 
         try {
             return await analyzeImageWithGemini(base64, mimeType, prompt);
-        } catch (e) {
+        } catch {
             return 'Análise corporal não disponível. Seu plano foi criado com base nas informações fornecidas.';
         }
     },
