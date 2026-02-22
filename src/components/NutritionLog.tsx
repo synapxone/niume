@@ -66,8 +66,6 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
     const [modalMealType, setModalMealType] = useState<MealType>('breakfast');
     const [modalMode, setModalMode] = useState<'choose' | 'photo' | 'manual'>('choose');
     const [analyzeLoading, setAnalyzeLoading] = useState(false);
-    const fileRef = useRef<HTMLInputElement>(null);
-    const galleryRef = useRef<HTMLInputElement>(null);
 
     // Form state
     const [formDesc, setFormDesc] = useState('');
@@ -619,23 +617,6 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
                 </div>
             )}
 
-            {/* Hidden file inputs */}
-            <input
-                ref={fileRef}
-                type="file"
-                accept="image/*"
-                capture="environment"
-                className="hidden"
-                onChange={(e) => { const f = e.target.files?.[0]; if (f) handlePhotoAnalysis(f); e.target.value = ''; }}
-            />
-            <input
-                ref={galleryRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => { const f = e.target.files?.[0]; if (f) handlePhotoAnalysis(f); e.target.value = ''; }}
-            />
-
             {/* Add modal */}
             <AnimatePresence>
                 {showModal && (
@@ -666,34 +647,43 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
 
                             {modalMode === 'choose' && (
                                 <div className="flex flex-col gap-3">
-                                    <button
-                                        type="button"
-                                        onClick={() => fileRef.current?.click()}
-                                        className="flex items-center gap-4 px-4 py-4 rounded-xl text-left"
+                                    <label
+                                        className="flex items-center gap-4 px-4 py-4 rounded-xl text-left cursor-pointer"
                                         style={{ backgroundColor: 'rgba(124,58,237,0.1)', border: '1px solid rgba(124,58,237,0.3)' }}
                                     >
-                                        <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: 'rgba(124,58,237,0.2)' }}>
+                                        <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: 'rgba(124,58,237,0.2)' }}>
                                             <Camera size={20} style={{ color: '#7C3AED' }} />
                                         </div>
                                         <div>
                                             <p className="text-white font-semibold text-sm">Câmera</p>
                                             <p className="text-gray-400 text-xs">Tire uma foto agora — IA analisa automaticamente</p>
                                         </div>
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => galleryRef.current?.click()}
-                                        className="flex items-center gap-4 px-4 py-4 rounded-xl text-left"
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            capture="environment"
+                                            className="hidden"
+                                            onChange={(e) => { const f = e.target.files?.[0]; if (f) handlePhotoAnalysis(f); e.target.value = ''; }}
+                                        />
+                                    </label>
+                                    <label
+                                        className="flex items-center gap-4 px-4 py-4 rounded-xl text-left cursor-pointer"
                                         style={{ backgroundColor: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.3)' }}
                                     >
-                                        <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: 'rgba(59,130,246,0.2)' }}>
+                                        <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: 'rgba(59,130,246,0.2)' }}>
                                             <Images size={20} style={{ color: '#3B82F6' }} />
                                         </div>
                                         <div>
                                             <p className="text-white font-semibold text-sm">Galeria</p>
-                                            <p className="text-gray-400 text-xs">Escolha uma foto existente — IA analisa automaticamente</p>
+                                            <p className="text-gray-400 text-xs">Escolha uma foto existente</p>
                                         </div>
-                                    </button>
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            className="hidden"
+                                            onChange={(e) => { const f = e.target.files?.[0]; if (f) handlePhotoAnalysis(f); e.target.value = ''; }}
+                                        />
+                                    </label>
                                     <button
                                         type="button"
                                         onClick={() => setModalMode('manual')}
