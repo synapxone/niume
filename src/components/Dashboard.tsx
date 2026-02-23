@@ -8,6 +8,7 @@ import NutritionLog from './NutritionLog';
 import GamificationView from './Gamification';
 import ProfileView from './ProfileView';
 import AIAssistant from './AIAssistant';
+import DailyRewardModal from './DailyRewardModal';
 
 interface Props {
     profile: Profile;
@@ -62,6 +63,16 @@ export default function Dashboard({ profile, workoutPlan, gamification, onSignOu
         return (sessionStorage.getItem('activeTab') as Tab) || 'home';
     });
     const [nutritionTotals, setNutritionTotals] = useState<NutritionTotals | null>(null);
+    const [showDailyReward, setShowDailyReward] = useState(false);
+
+    useEffect(() => {
+        const todayStr = new Date().toISOString().split('T')[0];
+        const lastCheck = localStorage.getItem('lastDailyRewardCheck');
+        if (lastCheck !== todayStr) {
+            setShowDailyReward(true);
+            localStorage.setItem('lastDailyRewardCheck', todayStr);
+        }
+    }, []);
 
     useEffect(() => {
         sessionStorage.setItem('activeTab', activeTab);
@@ -118,6 +129,15 @@ export default function Dashboard({ profile, workoutPlan, gamification, onSignOu
                     </div>
                 </div>
             </header>
+
+            {showDailyReward && (
+                <DailyRewardModal
+                    profile={profile}
+                    gamification={gamification}
+                    onClose={() => setShowDailyReward(false)}
+                />
+            )}
+
 
             {/* Content */}
             <main className="flex-1 overflow-y-auto pb-20">
