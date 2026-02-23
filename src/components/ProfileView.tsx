@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LogOut, Pencil, Plus, X, Camera, Loader2, TrendingDown, TrendingUp, Minus, Sparkles, Moon } from 'lucide-react';
+import { LogOut, Pencil, Plus, X, Camera, Loader2, TrendingDown, TrendingUp, Minus, Sparkles, Moon, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { supabase } from '../lib/supabase';
 import { geminiService } from '../services/geminiService';
+import { calculateEvolutionXP } from '../lib/xpHelpers';
 import type { Profile, ProgressEntry, Goal, ActivityLevel } from '../types';
 
 interface Props {
@@ -69,6 +70,29 @@ export default function ProfileView({ profile, onSignOut, onRefresh }: Props) {
         } else {
             document.documentElement.classList.remove('light');
             localStorage.setItem('app-theme', 'dark');
+        }
+    }
+
+    async function handleResetAccount() {
+        if (!confirm('Toda a sua evolução, fotos, refeições e treinos serão apagados para sempre. Tem certeza que deseja reiniciar do zero?')) return;
+
+        setLoading(true);
+        try {
+            const t1 = supabase.from('workout_plans').delete().eq('user_id', profile.id);
+            const t2 = supabase.from('gamification').delete().eq('user_id', profile.id);
+            const t3 = supabase.from('meals').delete().eq('user_id', profile.id);
+            const t4 = supabase.from('progress_entries').delete().eq('user_id', profile.id);
+            const t5 = supabase.from('daily_nutrition').delete().eq('user_id', profile.id);
+            const t6 = supabase.from('workout_sessions').delete().eq('user_id', profile.id);
+
+            await Promise.all([t1, t2, t3, t4, t5, t6]);
+            await supabase.from('profiles').delete().eq('id', profile.id);
+
+            toast.success('Sua conta foi zerada com sucesso.');
+            onRefresh();
+        } catch {
+            toast.error('Erro ao excluir dados da conta.');
+            setLoading(false);
         }
     }
 
@@ -204,14 +228,14 @@ export default function ProfileView({ profile, onSignOut, onRefresh }: Props) {
                 }).eq('id', profile.id);
                 onRefresh();
             }
-
-            // Reward massive points (500 XP for monthly review)
+            // Reward dynamic points based on 30-day compliance
+            const earnedXP = await calculateEvolutionXP(profile.id);
             const { data: gamData } = await supabase.from('gamification').select('points').eq('user_id', profile.id).single();
             if (gamData) {
-                await supabase.from('gamification').update({ points: gamData.points + 500 }).eq('user_id', profile.id);
+                await supabase.from('gamification').update({ points: gamData.points + earnedXP }).eq('user_id', profile.id);
             }
 
-            toast.success('Evolução registrada! A IA reavaliou e intensificou seus treinos. Você ganhou +500 XP!');
+            toast.success(`Evolução registrada! Baseada na sua dedicação, você ganhou +${earnedXP} XP!`);
             resetAddProgress();
             setShowAddProgress(false);
             await loadEntries();
@@ -392,6 +416,17 @@ export default function ProfileView({ profile, onSignOut, onRefresh }: Props) {
                 <LogOut size={18} />
                 Sair da conta
             </button>
+
+            {/* Reset account */}
+            <div className="flex justify-center mt-6">
+                <button
+                    onClick={handleResetAccount}
+                    className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-red-400 font-medium transition-colors"
+                >
+                    <AlertTriangle size={14} />
+                    Reiniciar Conta (Apagar Tudo)
+                </button>
+            </div>
 
             {/* ===== EDIT PROFILE MODAL ===== */}
             <AnimatePresence>

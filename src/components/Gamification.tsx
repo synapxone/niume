@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Star, Flame, Dumbbell, UtensilsCrossed, Gift, Lock, CheckCircle, TrendingUp, Settings2, X, Loader2, Save, Camera, Sparkles } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { supabase } from '../lib/supabase';
+import { calculateEvolutionXP } from '../lib/xpHelpers';
 import { REWARDS_CATALOG, xpForLevel } from '../types';
 import type { Gamification as GamificationType, Profile, Reward } from '../types';
 
@@ -161,11 +162,12 @@ export default function GamificationView({ gamification, profile, onUpdate }: Pr
                 weight: evoWeight,
             });
 
-            // Reward massive points (e.g. 500 for monthly review)
-            const newPoints = points + 500;
+            // Reward dynamic points (based on month progress)
+            const earnedXP = await calculateEvolutionXP(profile.id);
+            const newPoints = points + earnedXP;
             await supabase.from('gamification').update({ points: newPoints }).eq('user_id', profile.id);
 
-            toast.success('Evolução registrada! A IA reavaliou e intensificou seus treinos. Você ganhou +500 XP!');
+            toast.success(`Evolução registrada! Baseada na sua dedicação, você ganhou +${earnedXP} XP!`);
             setShowEvoModal(false);
             onUpdate();
         } catch (e) {

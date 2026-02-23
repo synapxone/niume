@@ -41,15 +41,26 @@ export default function App() {
         loadingRef.current = true;
         if (!silent) setLoading(true);
         try {
-            const [profileRes, planRes, gamRes] = await Promise.all([
+            const [profileRes, planRes, gamRes, mealCountRes, workoutCountRes] = await Promise.all([
                 supabase.from('profiles').select('*').eq('id', userId).single(),
                 supabase.from('workout_plans').select('*').eq('user_id', userId).eq('is_active', true).single(),
                 supabase.from('gamification').select('*').eq('user_id', userId).single(),
+                supabase.from('meals').select('id', { count: 'exact', head: true }).eq('user_id', userId),
+                supabase.from('workout_sessions').select('id', { count: 'exact', head: true }).eq('user_id', userId),
             ]);
             if (profileRes.data) {
                 setProfile(profileRes.data as Profile);
                 setWorkoutPlan(planRes.data as WorkoutPlan | null);
-                setGamification(gamRes.data as Gamification | null);
+
+                let gamData = gamRes.data as Gamification | null;
+                if (gamData) {
+                    gamData = {
+                        ...gamData,
+                        total_meals_logged: mealCountRes.count || 0,
+                        total_workouts: workoutCountRes.count || 0,
+                    };
+                }
+                setGamification(gamData);
                 if (!silent) setView('dashboard');
             } else {
                 setView('onboarding');
