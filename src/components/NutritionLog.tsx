@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Camera, PenLine, X, Loader2, Sparkles, Pencil, Trash2, Droplets, Images, ChevronLeft, ChevronRight, CalendarDays } from 'lucide-react';
+import { Plus, Camera, PenLine, X, Loader2, Sparkles, Pencil, Trash2, Droplets, Images, ChevronLeft, ChevronRight, CalendarDays, GlassWater, Flame, Zap, Activity, Info, TrendingUp } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { supabase } from '../lib/supabase';
 import { geminiService } from '../services/geminiService';
@@ -19,11 +19,11 @@ interface MacroTotals {
     fat: number;
 }
 
-const MEAL_TYPES: { id: MealType; label: string; emoji: string; time: string }[] = [
-    { id: 'breakfast', label: 'Café da manhã', emoji: '☀️', time: '07:00' },
-    { id: 'lunch', label: 'Almoço', emoji: '🍽️', time: '12:00' },
-    { id: 'snack', label: 'Lanche', emoji: '🍌', time: '15:30' },
-    { id: 'dinner', label: 'Jantar', emoji: '🌙', time: '19:00' },
+const MEAL_TYPES: { id: MealType; label: string; icon: React.ReactNode; time: string; color: string }[] = [
+    { id: 'breakfast', label: 'Café da manhã', icon: <Flame size={18} />, time: '07:00', color: '#8B5CF6' },
+    { id: 'lunch', label: 'Almoço', icon: <Activity size={18} />, time: '12:00', color: '#3B82F6' },
+    { id: 'snack', label: 'Lanche', icon: <Zap size={18} />, time: '15:30', color: '#F59E0B' },
+    { id: 'dinner', label: 'Jantar', icon: <TrendingUp size={18} />, time: '19:00', color: '#10B981' },
 ];
 
 function today(): string {
@@ -394,7 +394,7 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
     useEffect(() => {
         if (modalMode === 'camera' && cameraStream && videoRef.current) {
             videoRef.current.srcObject = cameraStream;
-            videoRef.current.play().catch(() => {/* autoplay may be blocked */});
+            videoRef.current.play().catch(() => {/* autoplay may be blocked */ });
         }
     }, [modalMode, cameraStream]);
 
@@ -690,93 +690,134 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
                 </button>
             </div>
 
-            {/* Daily Summary Card (Foodvisor style) */}
-            <div className="rounded-[24px] p-6 bg-white/[0.02] border border-white/5 backdrop-blur-md shadow-xl flex flex-col gap-6 w-full">
+            {/* Daily Summary Card (Premium) */}
+            <div className="relative overflow-hidden rounded-[32px] p-6 bg-gradient-to-br from-[#1A1A2E] to-[#12121A] border border-white/5 shadow-2xl flex flex-col gap-6 w-full">
+                {/* Decorative glow */}
+                <div className="absolute -top-24 -right-24 w-48 h-48 bg-indigo-500/20 blur-[80px] rounded-full pointer-events-none" />
+                <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-emerald-500/10 blur-[80px] rounded-full pointer-events-none" />
 
-                {/* Header / Calorie Ring */}
-                <div className="flex flex-col md:flex-row items-center gap-6">
-                    {/* Ring */}
-                    <div className="relative w-32 h-32 flex-shrink-0">
-                        <svg width="128" height="128" viewBox="0 0 128 128" style={{ transform: 'rotate(-90deg)' }}>
-                            <circle cx="64" cy="64" r={52} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="12" />
-                            <circle
-                                cx="64" cy="64" r={52} fill="none"
-                                stroke={totals.calories > goal ? '#EF4444' : '#10B981'}
+                <div className="flex flex-col md:flex-row items-center gap-8 relative z-10">
+                    {/* Premium Calorie Ring */}
+                    <div className="relative w-40 h-40 flex-shrink-0">
+                        <svg width="160" height="160" viewBox="0 0 160 160" className="transform -rotate-90">
+                            {/* Background Track */}
+                            <circle cx="80" cy="80" r="72" fill="none" stroke="rgba(255,255,255,0.03)" strokeWidth="12" />
+                            {/* Main Progress */}
+                            <motion.circle
+                                cx="80" cy="80" r="72" fill="none"
+                                stroke={totals.calories > goal ? "url(#failGradient)" : "url(#successGradient)"}
                                 strokeWidth="12"
-                                strokeDasharray={2 * Math.PI * 52}
-                                strokeDashoffset={(2 * Math.PI * 52) - ((calPct / 100) * (2 * Math.PI * 52))}
+                                strokeDasharray={2 * Math.PI * 72}
+                                initial={{ strokeDashoffset: 2 * Math.PI * 72 }}
+                                animate={{ strokeDashoffset: (2 * Math.PI * 72) - ((calPct / 100) * (2 * Math.PI * 72)) }}
+                                transition={{ duration: 1.5, ease: "easeOut" }}
                                 strokeLinecap="round"
-                                style={{ transition: 'stroke-dashoffset 1s cubic-bezier(0.4, 0, 0.2, 1)' }}
                             />
+                            <defs>
+                                <linearGradient id="successGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" stopColor="#10B981" />
+                                    <stop offset="100%" stopColor="#34D399" />
+                                </linearGradient>
+                                <linearGradient id="failGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" stopColor="#EF4444" />
+                                    <stop offset="100%" stopColor="#B91C1C" />
+                                </linearGradient>
+                            </defs>
                         </svg>
-                        <div className="absolute inset-0 flex flex-col items-center justify-center text-center mt-1">
+                        <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
                             {totals.calories >= goal ? (
-                                <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest leading-tight">Meta<br />Atingida!</span>
+                                <div className="flex flex-col items-center gap-1">
+                                    <Sparkles size={24} className="text-emerald-400 animate-pulse" />
+                                    <span className="text-[10px] font-black text-emerald-400 uppercase tracking-[0.2em] leading-tight">Meta<br />Batida</span>
+                                </div>
                             ) : (
                                 <>
-                                    <span className="text-2xl font-black text-white leading-none">{goal - totals.calories}</span>
-                                    <span className="text-[10px] text-gray-400 uppercase font-semibold tracking-wider mt-0.5">Kcal Restantes</span>
+                                    <span className="text-4xl font-mono font-black text-white tracking-tighter">{goal - totals.calories}</span>
+                                    <span className="text-[10px] text-gray-500 uppercase font-black tracking-widest mt-1">Kcal Faltam</span>
                                 </>
                             )}
                         </div>
                     </div>
 
-                    {/* Macros */}
-                    <div className="flex flex-col gap-3.5 flex-1 w-full">
-                        <MacroBar label="Proteína" value={totals.protein} goal={protGoal} unit="g" color="#7C3AED" />
-                        <MacroBar label="Carboidratos" value={totals.carbs} goal={carbGoal} unit="g" color="#F59E0B" />
-                        <MacroBar label="Gorduras" value={totals.fat} goal={fatGoal} unit="g" color="#EF4444" />
+                    {/* Macro Stats */}
+                    <div className="flex flex-col gap-4 flex-1 w-full justify-center">
+                        <MacroProgress label="Proteína" current={totals.protein} target={protGoal} color="#8B5CF6" icon={<Flame size={12} />} />
+                        <MacroProgress label="Carbos" current={totals.carbs} target={carbGoal} color="#3B82F6" icon={<Zap size={12} />} />
+                        <MacroProgress label="Gorduras" current={totals.fat} target={fatGoal} color="#F59E0B" icon={<TrendingUp size={12} />} />
                     </div>
                 </div>
 
-                {/* Info Footer */}
-                <div className="pt-4 flex items-center justify-between text-xs font-semibold text-gray-500 uppercase tracking-widest border-t border-white/5">
-                    <span>Consumido: <span className="text-white">{totals.calories}</span> Kcal</span>
-                    <span>Meta: <span className="text-white">{goal}</span> Kcal</span>
+                {/* Footer Summary */}
+                <div className="pt-5 flex items-center justify-between border-t border-white/5 relative z-10">
+                    <div className="flex flex-col">
+                        <span className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Consumido</span>
+                        <span className="text-lg font-black text-white">{totals.calories} <span className="text-xs text-gray-500 font-normal">kcal</span></span>
+                    </div>
+                    <div className="flex flex-col items-end">
+                        <span className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Meta Diária</span>
+                        <span className="text-lg font-black text-indigo-400">{goal} <span className="text-xs text-indigo-500/50 font-normal">kcal</span></span>
+                    </div>
                 </div>
             </div>
 
-            {/* Water Tracker (Premium) */}
-            <div className="rounded-[20px] p-5 flex flex-col gap-4 bg-white/[0.02] border border-blue-500/20 backdrop-blur-sm">
-                {/* Header */}
+            {/* Premium Water Tracker */}
+            <div className="rounded-[28px] p-6 flex flex-col gap-6 bg-[#12121A] border border-blue-500/10 shadow-lg relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 blur-[50px] rounded-full pointer-events-none" />
+
                 <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                        <Droplets size={16} style={{ color: '#60A5FA' }} />
-                        <p className="text-sm font-bold text-blue-400 uppercase tracking-wider">Água</p>
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
+                            <GlassWater size={20} className="text-blue-400" />
+                        </div>
+                        <div>
+                            <p className="text-base font-black text-white tracking-tight">Hidratação</p>
+                            <p className="text-[10px] text-blue-400 font-bold uppercase tracking-widest">{waterCups >= goalCups ? 'Meta Concluída! 🌊' : 'Faltam ' + ((goalCups - waterCups) * 0.25).toFixed(2).replace('.', ',') + ' litros'}</p>
+                        </div>
                     </div>
-                    <span className="text-[11px] font-semibold" style={{ color: waterCups >= goalCups ? '#34D399' : '#6B7280' }}>
-                        {waterCups >= goalCups ? 'Meta atingida! 🎉' : `Falta ${((goalCups - waterCups) * 0.25).toFixed(2).replace('.', ',')} L`}
-                    </span>
-                </div>
-
-                {/* Liters progress */}
-                <div className="flex flex-col gap-1.5">
-                    <div className="flex justify-between text-xs">
-                        <span className="font-bold text-white">{(waterCups * 0.25).toFixed(2).replace('.', ',')} L</span>
-                        <span className="text-gray-500">de {(waterGoalMl / 1000).toFixed(1).replace('.', ',')} L · {goalCups} copos</span>
-                    </div>
-                    <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: 'rgba(59,130,246,0.12)' }}>
-                        <motion.div
-                            className="h-full rounded-full"
-                            style={{ backgroundColor: '#60A5FA' }}
-                            animate={{ width: `${Math.min((waterCups / Math.max(goalCups, 1)) * 100, 100)}%` }}
-                            transition={{ duration: 0.5 }}
-                        />
+                    <div className="text-right">
+                        <span className="text-2xl font-black text-white tabular-nums">{(waterCups * 0.25).toFixed(2).replace('.', ',')}</span>
+                        <span className="text-xs text-gray-500 font-bold ml-1">LITROS</span>
                     </div>
                 </div>
 
-                {/* Cups grid — no horizontal scroll */}
-                <div className="flex flex-wrap gap-2">
-                    {Array.from({ length: goalCups }).map((_, i) => (
-                        <button
-                            key={i}
-                            onClick={() => handleCupClick(i)}
-                            className="text-xl hover:scale-110 active:scale-95 transition-transform"
-                            style={{ opacity: i < waterCups ? 1 : 0.2, filter: i < waterCups ? 'drop-shadow(0 2px 4px rgba(59,130,246,0.5))' : 'none' }}
-                        >
-                            💧
-                        </button>
-                    ))}
+                <div className="h-2 rounded-full overflow-hidden bg-blue-500/5 border border-blue-500/10">
+                    <motion.div
+                        className="h-full rounded-full bg-gradient-to-r from-blue-500 to-indigo-400 shadow-[0_0_15px_rgba(59,130,246,0.3)]"
+                        animate={{ width: `${Math.min((waterCups / Math.max(goalCups, 1)) * 100, 100)}%` }}
+                        transition={{ duration: 0.8, ease: "easeOut" }}
+                    />
+                </div>
+
+                <div className="flex flex-wrap gap-2.5 justify-between">
+                    {Array.from({ length: 12 }).map((_, i) => {
+                        const isSelected = i < waterCups;
+                        const isNext = i === waterCups;
+                        return (
+                            <button
+                                key={i}
+                                onClick={() => handleCupClick(i)}
+                                className={`relative w-11 h-11 rounded-xl flex items-center justify-center transition-all duration-300 ${isSelected
+                                        ? 'bg-blue-500/20 border-blue-500/40 text-blue-400 scale-100 shadow-[0_5px_15px_rgba(59,130,246,0.2)]'
+                                        : isNext
+                                            ? 'bg-white/5 border-white/10 text-gray-600 hover:border-blue-500/30'
+                                            : 'bg-white/[0.02] border-white/5 text-gray-800'
+                                    } border`}
+                            >
+                                <GlassWater
+                                    size={18}
+                                    fill={isSelected ? "currentColor" : "none"}
+                                    className={isSelected ? "animate-bounce-subtle" : ""}
+                                />
+                                {isSelected && (
+                                    <motion.div
+                                        initial={{ scale: 0 }}
+                                        animate={{ scale: 1 }}
+                                        className="absolute -top-1 -right-1 w-3 h-3 bg-blue-400 rounded-full border-2 border-[#12121A]"
+                                    />
+                                )}
+                            </button>
+                        );
+                    })}
                 </div>
             </div>
 
@@ -789,24 +830,26 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
                     return (
                         <div key={mt.id} className="rounded-[20px] p-5 bg-white/[0.02] border border-white/5 backdrop-blur-sm transition-colors hover:bg-white/[0.03]">
 
-                            {/* Card Header */}
-                            <div className="flex items-center justify-between mb-3">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-full flex items-center justify-center bg-white/5 border border-white/5 text-lg">
-                                        {mt.emoji}
+                            {/* Premium Card Header */}
+                            <div className="flex items-center justify-between mb-4">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-12 h-12 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110 duration-300" style={{ backgroundColor: `${mt.color}15`, border: `1px solid ${mt.color}30`, color: mt.color }}>
+                                        {mt.icon}
                                     </div>
-                                    <div>
-                                        <p className="text-white font-bold text-sm tracking-tight">{mt.label}</p>
-                                        <p className="text-gray-500 text-[11px] font-medium tracking-wide uppercase mt-0.5">{mt.time} · {mealCals} kcal</p>
+                                    <div className="flex flex-col">
+                                        <p className="text-white font-black text-sm tracking-tight">{mt.label}</p>
+                                        <p className="text-gray-500 text-[10px] font-black tracking-widest uppercase">{mt.time} · {mealCals} KCAL</p>
                                     </div>
                                 </div>
 
-                                <button
+                                <motion.button
+                                    whileHover={{ scale: 1.1 }}
+                                    whileTap={{ scale: 0.9 }}
                                     onClick={() => openModal(mt.id)}
-                                    className="w-8 h-8 flex items-center justify-center rounded-full text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 transition-all hover:bg-indigo-500/20"
+                                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-gray-400 hover:text-white transition-all"
                                 >
-                                    <Plus size={16} strokeWidth={2.5} />
-                                </button>
+                                    <Plus size={20} strokeWidth={2.5} />
+                                </motion.button>
                             </div>
 
                             {/* Food Items */}
@@ -1484,17 +1527,44 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
     );
 }
 
+function MacroProgress({ label, current, target, color, icon }: { label: string; current: number; target: number; color: string; icon: React.ReactNode }) {
+    const pct = Math.min((current / Math.max(target, 1)) * 100, 100);
+    return (
+        <div className="flex flex-col gap-1.5">
+            <div className="flex justify-between items-center px-0.5">
+                <div className="flex items-center gap-1.5">
+                    <div className="p-1 rounded bg-white/5" style={{ color }}>{icon}</div>
+                    <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">{label}</span>
+                </div>
+                <div className="text-[11px] font-mono">
+                    <span className="text-white font-bold">{current}g</span>
+                    <span className="text-gray-600"> / {target}g</span>
+                </div>
+            </div>
+            <div className="h-1.5 rounded-full bg-white/5 overflow-hidden">
+                <motion.div
+                    className="h-full rounded-full"
+                    style={{ backgroundColor: color, boxShadow: `0 0 10px ${color}30` }}
+                    initial={{ width: 0 }}
+                    animate={{ width: `${pct}%` }}
+                    transition={{ duration: 1, delay: 0.2 }}
+                />
+            </div>
+        </div>
+    );
+}
+
 function MacroBar({ label, value, goal, unit, color }: { label: string; value: number; goal: number; unit: string; color: string }) {
     const pct = Math.min((value / Math.max(goal, 1)) * 100, 100);
     return (
         <div className="flex flex-col gap-1">
-            <div className="flex justify-between text-xs">
-                <span className="text-gray-400">{label}</span>
-                <span className="text-white">{value}{unit} / {goal}{unit}</span>
+            <div className="flex justify-between text-[10px] uppercase font-bold tracking-widest mb-0.5">
+                <span className="text-gray-500">{label}</span>
+                <span className="text-gray-300">{value}{unit} / {goal}{unit}</span>
             </div>
-            <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: 'rgba(255,255,255,0.08)' }}>
+            <div className="h-1.5 rounded-full overflow-hidden bg-white/5">
                 <motion.div
-                    className="h-full rounded-full"
+                    className="h-full rounded-full shadow-[0_0_8px_rgba(255,255,255,0.1)]"
                     style={{ backgroundColor: color }}
                     animate={{ width: `${pct}%` }}
                     transition={{ duration: 0.5 }}
