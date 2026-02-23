@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, ChevronUp, Check, Timer, Trophy, Play, Pause, Save, Copy, Settings2, X, Loader2, BedDouble, Zap, Target, Activity, Calendar, CalendarClock, Bell, Dumbbell } from 'lucide-react';
+import { ChevronDown, ChevronUp, Check, Timer, Trophy, Play, Pause, Save, Copy, Settings2, X, Loader2, BedDouble, Zap, Target, Activity, Calendar, CalendarClock, Bell, Dumbbell, CheckCheck } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { exerciseMediaService } from '../services/exerciseMediaService';
 import type { MediaResult } from '../services/exerciseMediaService';
@@ -14,7 +14,7 @@ interface Props {
     onComplete: (pointsEarned: number) => void;
 }
 
-const WEEK_DAYS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
+const WEEK_DAYS = ['S', 'T', 'Q', 'Q', 'S', 'S', 'D'];
 
 function formatTime(seconds: number): string {
     const m = Math.floor(seconds / 60);
@@ -288,6 +288,25 @@ export default function WorkoutDayView({ plan, profile, onComplete }: Props) {
         return totalSets > 0 ? (doneSets / totalSets) * 100 : 0;
     };
 
+    const handleFinishAll = () => {
+        if (!todayData) return;
+        const newProgress = { ...setsProgress };
+        todayData.exercises.forEach((ex, exIdx) => {
+            const numSets = ex.sets || 3;
+            const sets: SetState[] = [];
+            for (let i = 0; i < numSets; i++) {
+                sets.push({
+                    status: 'done' as const,
+                    weight: '0',
+                    time: 0,
+                    showWeightInput: false
+                });
+            }
+            newProgress[exIdx] = sets;
+        });
+        setSetsProgress(newProgress);
+    };
+
     async function handleFinishWorkout() {
         if (!todayData) return;
         setSaving(true);
@@ -399,9 +418,9 @@ export default function WorkoutDayView({ plan, profile, onComplete }: Props) {
     const progressPct = getProgressPct();
 
     return (
-        <div className="flex flex-col px-4 py-5 gap-5 max-w-lg mx-auto pb-24">
+        <div className="flex flex-col px-4 pt-10 pb-24 gap-5 max-w-lg mx-auto">
             {/* Week Tab Selector */}
-            <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 custom-scrollbar">
+            <div className="flex gap-2 -mx-4 px-4">
                 {WEEK_DAYS.map((d, i) => {
                     const dayData = localPlan.plan_data?.weeks?.[selectedWeekIndex]?.days?.[i];
                     const isRest = dayData?.type === 'rest';
@@ -579,9 +598,20 @@ export default function WorkoutDayView({ plan, profile, onComplete }: Props) {
                         )}
                     </AnimatePresence>
 
-                    <div>
-                        <h2 className="text-xl font-bold text-white">{todayData?.name || ''}</h2>
-                        <p className="text-gray-500 text-sm">{totalCount} exercícios</p>
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h2 className="text-xl font-bold text-white">{todayData?.name || ''}</h2>
+                            <p className="text-gray-500 text-sm">{totalCount} exercícios</p>
+                        </div>
+                        {progressPct < 100 && (
+                            <button
+                                onClick={handleFinishAll}
+                                className="px-3 py-2 rounded-xl bg-green-500/10 border border-green-500/20 text-green-500 text-xs font-bold flex items-center gap-1.5 hover:bg-green-500/20 transition-all"
+                            >
+                                <CheckCheck size={14} />
+                                Finalizar Tudo
+                            </button>
+                        )}
                     </div>
 
                     <div>
