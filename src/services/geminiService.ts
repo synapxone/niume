@@ -98,7 +98,7 @@ function calculateCalorieGoal(data: OnboardingData): number {
 export const geminiService = {
     calculateCalorieGoal,
 
-    async generateWorkoutPlan(data: OnboardingData): Promise<any> {
+    async generateWorkoutPlan(data: OnboardingData & { active_days?: string[] }): Promise<any> {
         const goalLabels: Record<string, string> = {
             lose_weight: 'Perda de Peso',
             gain_muscle: 'Hipertrofia Muscular',
@@ -106,6 +106,13 @@ export const geminiService = {
             gain_weight: 'Ganho de Massa',
         };
         const locationLabel = data.training_location === 'gym' ? 'academia (com equipamentos)' : 'em casa (sem equipamentos ou com itens básicos)';
+
+        let activeDaysPrompt = '';
+        if (data.active_days && data.active_days.length > 0) {
+            activeDaysPrompt = `\n- IMPORTANTE (DIAS DA SEMANA): O usuário informou que só quer/pode malhar nos dias: ${data.active_days.join(', ')}. Os outros dias DEBEM OBRIGATORIAMENTE ser de DESCANSO (type: "rest"). Por favor, distribua os treinos APENAS nestes dias ativos.`;
+        } else {
+            activeDaysPrompt = `\n- DICA: Planeje os treinos para SEGUNDA a DOMINGO com pelo menos 1 a 2 dias de descanso na semana.`;
+        }
 
         const prompt = `Você é um personal trainer especialista. Crie um plano de treino completo em JSON.
 
@@ -115,26 +122,20 @@ PERFIL DO USUÁRIO:
 - Tempo disponível: ${data.available_minutes} minutos por dia
 - Nível de atividade atual: ${data.activity_level}
 - Peso: ${data.weight}kg | Altura: ${data.height}cm | Idade: ${data.age} anos
-- EXTREMAMENTE IMPORTANTE: Varie os exercícios. Este usuário se chama ${data.name || 'usuário'}, então garanta que este plano seja EXCLUSIVO e criativo, não repita um modelo padrão! Adapte à preferência de que o usuário só tem os equipamentos de: ${data.training_location}.
+- EXTREMAMENTE IMPORTANTE: Varie os exercícios. Este usuário se chama ${data.name || 'usuário'}, então garanta que este plano seja EXCLUSIVO e criativo, não repita um modelo padrão! Adapte à preferência de que o usuário só tem os equipamentos de: ${data.training_location}.${activeDaysPrompt}
 
 INSTRUÇÕES OBRIGATÓRIAS:
-- Crie um plano de 4-8 semanas com progressão.
-- CRÍTICO: Planeje os treinos para SEGUNDA a DOMINGO (7 dias na semana "days": [{"day": 1}, ..., {"day": 7}]).
-- Use divisões musculares modernas e eficientes, EXATAMENTE (ou similar) variando pelos dias da semana. Exemplo de divisão:
-  Dia 1 (Segunda): Peito e Tríceps
-  Dia 2 (Terça): Descanso ou Cardio leve
-  Dia 3 (Quarta): Pernas e Costas
-  Dia 4 (Quinta): Descanso
-  Dia 5 (Sexta): Só Ombros e Abdômen
-  Dia 6 e 7: Outras combinações ou Descanso
+- Crie um plano de 4 semanas com progressão.
+- CRÍTICO: Planeje os treinos para SEGUNDA a DOMINGO (7 dias na semana "days": [{"day": 1}, ..., {"day": 7}]) onde 1 é Segunda e 7 é Domingo.
+- Use divisões musculares modernas e eficientes, EXATAMENTE (ou similar) variando pelos dias da semana (quando for dia produtivo).
 - A chave "exercise_id" DEVE SER OBRIGATORIAMENTE um ID numérico de 4 dígitos do banco ExerciseDB (ex: "0009", "0094", "1347", "3214", "0043"). NUNCA use palavras (como "push-up") no campo "exercise_id"!
 - Se for treino em casa, use os IDs numéricos mais próximos do exercício: "0009" (Flexão), "0685" (Agachamento), "0001" (Abdominal), "3214" (Burpee), "1374" (Prancha).
 - Máximo de ${Math.floor(data.available_minutes / 5)} exercícios por dia.
 
-Retorne APENAS JSON válido:
+Retorne APENAS JSON válido sem marcações markdown:
 {
-  "name": "Plano [Objetivo] — X semanas",
-  "estimated_weeks": 8,
+  "name": "Plano [Objetivo] — 4 semanas",
+  "estimated_weeks": 4,
   "description": "Descrição breve do plano e como ele atinge o objetivo",
   "weeks": [
     {

@@ -361,7 +361,11 @@ export default function WorkoutDayView({ plan, profile, onComplete }: Props) {
         setIsRebuildingWeek(true);
         try {
             // Reutiliza a lógica do profile para gerar toda a semana de uma vez pra pessoa
-            const newProfileData = { ...profile, training_location: regenWeekLoc as any, available_minutes: regenWeekMin };
+            const ptDaysMap = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+            const activeDaysMap = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
+            const activeStrings = activeDaysMap.filter((_, i) => weekDaysActive[i]);
+
+            const newProfileData = { ...profile, training_location: regenWeekLoc as any, available_minutes: regenWeekMin, active_days: activeStrings };
             const newPlanJson = await geminiService.generateWorkoutPlan(newProfileData);
 
             if (newPlanJson && newPlanJson.weeks) {
