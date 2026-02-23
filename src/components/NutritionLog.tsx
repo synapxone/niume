@@ -468,11 +468,21 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
             const newMeals = [...meals, ...(inserted as Meal[])];
             setMeals(newMeals);
             await updateDailyNutrition(newMeals);
+            await rewardGamification(items.length);
             onUpdate();
         } catch (e) {
             toast.error('Erro ao salvar.', { id: toastId });
         } finally {
             setSaving(false);
+        }
+    }
+    async function rewardGamification(mealCount = 1) {
+        const { data } = await supabase.from('gamification').select('points, total_meals_logged').eq('user_id', profile.id).single();
+        if (data) {
+            await supabase.from('gamification').update({
+                points: data.points + (mealCount * 25), // 25 points per meal
+                total_meals_logged: data.total_meals_logged + mealCount
+            }).eq('user_id', profile.id);
         }
     }
 
@@ -527,6 +537,7 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
         const newMeals = [...meals, insertedMeal as Meal];
         setMeals(newMeals);
         await updateDailyNutrition(newMeals);
+        await rewardGamification(1);
         onUpdate();
 
         // Background calculation if not analyzed
