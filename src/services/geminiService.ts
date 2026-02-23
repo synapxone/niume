@@ -122,57 +122,38 @@ PERFIL DO USUÁRIO:
 - Tempo disponível: ${data.available_minutes} minutos por dia
 - Nível de atividade atual: ${data.activity_level}
 - Peso: ${data.weight}kg | Altura: ${data.height}cm | Idade: ${data.age} anos
-- EXTREMAMENTE IMPORTANTE: Varie os exercícios. Este usuário se chama ${data.name || 'usuário'}, então garanta que este plano seja EXCLUSIVO e criativo, não repita um modelo padrão! Adapte à preferência de que o usuário só tem os equipamentos de: ${data.training_location}.${activeDaysPrompt}
+        INSTRUÇÕES:
+        - Plano de 4 semanas com progressão.
+        - Dias 1-7 (Segunda a Domingo).
+        - Use IDs numéricos do ExerciseDB (4 dígitos).
+        - Descrições e instruções CURTAS e DIREIRAS.
+        - Máximo de 5-6 exercícios por dia.
+        ${activeDaysPrompt}
 
-INSTRUÇÕES OBRIGATÓRIAS:
-- Crie um plano de 4 semanas com progressão.
-- CRÍTICO: Planeje os treinos para SEGUNDA a DOMINGO (7 dias na semana "days": [{"day": 1}, ..., {"day": 7}]) onde 1 é Segunda e 7 é Domingo.
-- Use divisões musculares modernas e eficientes, EXATAMENTE (ou similar) variando pelos dias da semana (quando for dia produtivo).
-- A chave "exercise_id" DEVE SER OBRIGATORIAMENTE um ID numérico de 4 dígitos do banco ExerciseDB (ex: "0009", "0094", "1347", "3214", "0043"). NUNCA use palavras (como "push-up") no campo "exercise_id"!
-- Se for treino em casa, use os IDs numéricos mais próximos do exercício: "0009" (Flexão), "0685" (Agachamento), "0001" (Abdominal), "3214" (Burpee), "1374" (Prancha).
-- Máximo de ${Math.floor(data.available_minutes / 5)} exercícios por dia.
-
-Retorne APENAS JSON válido sem marcações markdown:
-{
-  "name": "Plano [Objetivo] — 4 semanas",
-  "estimated_weeks": 4,
-  "description": "Descrição breve do plano e como ele atinge o objetivo",
-  "weeks": [
-    {
-      "week": 1,
-      "days": [
+        Retorne APENAS o JSON no formato:
         {
-          "day": 1,
-          "name": "Treino A — [Grupos Musculares]",
-          "type": "strength",
-          "exercises": [
+          "name": "Nome",
+          "estimated_weeks": 4,
+          "weeks": [
             {
-              "exercise_id": "0009",
-              "name": "Nome do Exercício",
-              "sets": 3,
-              "reps": "10-12",
-              "recommended_weight": "10kg",
-              "rest_seconds": 60,
-              "instructions": "Como executar corretamente",
-              "tips": "Dica importante"
+              "week": 1,
+              "days": [
+                {
+                  "day": 1,
+                  "name": "Treino A",
+                  "type": "strength",
+                  "exercises": [
+                    { "exercise_id": "0009", "name": "Flexão", "sets": 3, "reps": "10-12", "rest_seconds": 60, "instructions": "...", "tips": "..." }
+                  ]
+                }
+              ]
             }
           ]
-        },
-        {
-          "day": 2,
-          "name": "Descanso Ativo",
-          "type": "rest",
-          "exercises": []
-        }
-      ]
-    }
-  ]
-}`;
+        }`;
 
         try {
             const text = await generateWithFallback(prompt);
-            const match = text.match(/\{[\s\S]*\}/);
-            if (match) return JSON.parse(match[0]);
+            return parseSafeJSON(text);
         } catch (e) {
             console.error('Error generating workout plan:', e);
         }
@@ -244,8 +225,7 @@ Retorne APENAS JSON válido, neste formato exato (sem Markdown):
 
         try {
             const text = await generateWithFallback(prompt);
-            const match = text.match(/\{[\s\S]*\}/);
-            if (match) return JSON.parse(match[0]);
+            return parseSafeJSON(text);
         } catch (e) {
             console.error('Error generating single workout day:', e);
         }
@@ -305,8 +285,7 @@ Retorne APENAS JSON válido:
 
         try {
             const text = await generateWithFallback(prompt);
-            const match = text.match(/\{[\s\S]*\}/);
-            if (match) return JSON.parse(match[0]);
+            return parseSafeJSON(text);
         } catch (e) {
             console.error('Error generating diet plan:', e);
         }
@@ -341,8 +320,7 @@ Exemplos:
 Retorne APENAS um array JSON de strings. Sem texto extra, sem markdown.`;
         try {
             const text = await generateWithFallback(prompt);
-            const match = text.match(/\[[\s\S]*?\]/);
-            if (match) return JSON.parse(match[0]);
+            return parseSafeJSON(text);
         } catch (e) {
             console.error('Error suggesting units:', e);
         }
@@ -355,8 +333,7 @@ Exemplo para "pão": ["Pão francês", "Pão francês sem miolo", "Pão francês
 Retorne APENAS um array JSON válido. Sem texto extra, sem markdown.`;
         try {
             const text = await generateWithFallback(prompt);
-            const match = text.match(/\[[\s\S]*?\]/);
-            if (match) return JSON.parse(match[0]);
+            return parseSafeJSON(text);
         } catch (e) {
             console.error('Error suggesting foods:', e);
         }
@@ -381,8 +358,7 @@ Considere uma porção padrão/média. Seja realista e conservador nas estimativ
 
         try {
             const text = await generateWithFallback(prompt);
-            const match = text.match(/\{[\s\S]*?\}/);
-            if (match) return JSON.parse(match[0]);
+            return parseSafeJSON(text);
         } catch (e) {
             console.error('Error analyzing food text:', e);
         }
@@ -405,8 +381,7 @@ IMPORTANTE: "description" deve ser APENAS o nome do alimento, sem descrever emba
 
         try {
             const text = await analyzeImageWithGemini(base64, mimeType, prompt);
-            const match = text.match(/\{[\s\S]*\}/);
-            if (match) return JSON.parse(match[0]);
+            return parseSafeJSON(text);
         } catch (e) {
             console.error('Error analyzing food:', e);
         }
@@ -429,3 +404,34 @@ Responda de forma útil, motivadora e personalizada com base no contexto acima. 
         return await generateWithFallback(prompt);
     },
 };
+
+function parseSafeJSON(text: string): any {
+    try {
+        // Strip markdown backticks if present
+        const cleaned = text.replace(/```json/g, '').replace(/```/g, '').trim();
+        // Look for the first { or [ and last } or ]
+        const firstBrace = cleaned.indexOf('{');
+        const firstBracket = cleaned.indexOf('[');
+        const lastBrace = cleaned.lastIndexOf('}');
+        const lastBracket = cleaned.lastIndexOf(']');
+
+        let start = -1;
+        let end = -1;
+
+        if (firstBrace !== -1 && (firstBracket === -1 || firstBrace < firstBracket)) {
+            start = firstBrace;
+            end = lastBrace;
+        } else if (firstBracket !== -1) {
+            start = firstBracket;
+            end = lastBracket;
+        }
+
+        if (start === -1 || end === -1 || end < start) return null;
+
+        const jsonStr = cleaned.slice(start, end + 1);
+        return JSON.parse(jsonStr);
+    } catch (e) {
+        console.warn('parseSafeJSON failed to parse text:', text.slice(0, 100) + '...', e);
+        return null;
+    }
+}
