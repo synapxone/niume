@@ -33,7 +33,7 @@ export default function App() {
         try {
             // URL onde você hospedará seu manifest.json e o .zip da atualização
             // Exemplo: https://sua-conta-supabase.supabase.co/storage/v1/object/public/updates/manifest.json
-            const MANIFEST_URL = 'https://raw.githubusercontent.com/seu-usuario/seu-repo/main/updates/manifest.json';
+            const MANIFEST_URL = 'https://synapx.cloud/personall/manifest.json';
 
             const response = await fetch(MANIFEST_URL);
             const manifest = await response.json();
