@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Camera, PenLine, X, Loader2, Sparkles, Pencil, Trash2, Droplets, Images } from 'lucide-react';
+import { Plus, Camera, PenLine, X, Loader2, Sparkles, Pencil, Trash2, Droplets, Images, ChevronLeft, ChevronRight, CalendarDays } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { supabase } from '../lib/supabase';
 import { geminiService } from '../services/geminiService';
@@ -31,6 +31,43 @@ function today(): string {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
+function localDateStr(d: Date): string {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function prevDay(date: string): string {
+    const d = new Date(date + 'T12:00:00');
+    d.setDate(d.getDate() - 1);
+    return localDateStr(d);
+}
+
+function nextDay(date: string): string {
+    const d = new Date(date + 'T12:00:00');
+    d.setDate(d.getDate() + 1);
+    return localDateStr(d);
+}
+
+function formatDateLabel(date: string): string {
+    const t = today();
+    if (date === t) return 'Hoje';
+    if (date === prevDay(t)) return 'Ontem';
+    const d = new Date(date + 'T12:00:00');
+    return d.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short' }).replace(/\./g, '');
+}
+
+function buildCalendarDays(month: Date): (string | null)[] {
+    const year = month.getFullYear();
+    const m = month.getMonth();
+    const firstDay = new Date(year, m, 1).getDay();
+    const daysInMonth = new Date(year, m + 1, 0).getDate();
+    const cells: (string | null)[] = [];
+    for (let i = 0; i < firstDay; i++) cells.push(null);
+    for (let d = 1; d <= daysInMonth; d++) {
+        cells.push(`${year}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`);
+    }
+    return cells;
+}
+
 function compressImage(file: File, maxSize = 512): Promise<{ base64: string; mimeType: string }> {
     return new Promise((resolve) => {
         const canvas = document.createElement('canvas');
@@ -59,6 +96,11 @@ function compressImage(file: File, maxSize = 512): Promise<{ base64: string; mim
 }
 
 export default function NutritionLog({ profile, onUpdate, onNutritionChange }: Props) {
+    const [selectedDate, setSelectedDate] = useState<string>(today());
+    const [showCalendar, setShowCalendar] = useState(false);
+    const [calendarMonth, setCalendarMonth] = useState(() => new Date());
+    const [mealDates, setMealDates] = useState<Set<string>>(new Set());
+
     const [meals, setMeals] = useState<Meal[]>([]);
     const [history, setHistory] = useState<{ date: string; calories: number }[]>([]);
     const [loading, setLoading] = useState(true);
@@ -100,29 +142,33 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
     const [editSaving, setEditSaving] = useState(false);
 
     useEffect(() => {
-        loadData();
+        loadData(selectedDate);
+    }, [selectedDate]);
+
+    useEffect(() => {
+        fetchMealDates();
     }, []);
 
-    async function loadData() {
+    async function loadData(date: string) {
         setLoading(true);
         try {
             const [mealsRes, histRes, waterRes] = await Promise.all([
-                supabase.from('meals').select('*').eq('user_id', profile.id).eq('meal_date', today()).order('logged_at', { ascending: true }),
+                supabase.from('meals').select('*').eq('user_id', profile.id).eq('meal_date', date).order('logged_at', { ascending: true }),
                 supabase.from('daily_nutrition').select('date,total_calories').eq('user_id', profile.id).order('date', { ascending: false }).limit(7),
-                supabase.from('daily_nutrition').select('water_cups').eq('user_id', profile.id).eq('date', today()).maybeSingle(),
+                supabase.from('daily_nutrition').select('water_cups').eq('user_id', profile.id).eq('date', date).maybeSingle(),
             ]);
             const loadedMeals = (mealsRes.data as Meal[]) || [];
             setMeals(loadedMeals);
             if (histRes.data) {
                 setHistory(histRes.data.map((r: any) => ({ date: r.date, calories: r.total_calories })).reverse());
             }
-            // Load water: prefer Supabase (cross-device), fallback to localStorage
             const dbWater = (waterRes.data as any)?.water_cups;
             if (typeof dbWater === 'number') {
                 setWaterCups(dbWater);
             } else {
-                const saved = localStorage.getItem(`water_${profile.id}_${today()}`);
+                const saved = localStorage.getItem(`water_${profile.id}_${date}`);
                 if (saved) setWaterCups(parseInt(saved));
+                else setWaterCups(0);
             }
             const totals = loadedMeals.reduce((acc, m) => ({
                 calories: acc.calories + (m.calories || 0),
@@ -133,11 +179,17 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
             onNutritionChange?.(totals);
         } catch (e) {
             console.error('NutritionLog loadData error:', e);
-            const saved = localStorage.getItem(`water_${profile.id}_${today()}`);
+            const saved = localStorage.getItem(`water_${profile.id}_${date}`);
             if (saved) setWaterCups(parseInt(saved));
+            else setWaterCups(0);
         } finally {
             setLoading(false);
         }
+    }
+
+    async function fetchMealDates() {
+        const { data } = await supabase.from('meals').select('meal_date').eq('user_id', profile.id);
+        if (data) setMealDates(new Set(data.map((r: any) => r.meal_date)));
     }
 
     function getTodayTotals(): MacroTotals {
@@ -286,7 +338,7 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
         }), { total_calories: 0, total_protein: 0, total_carbs: 0, total_fat: 0 });
         await supabase.from('daily_nutrition').upsert({
             user_id: profile.id,
-            date: today(),
+            date: selectedDate,
             ...totals,
             goal_calories: profile.daily_calorie_goal,
             water_cups: waterCups,
@@ -303,7 +355,7 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
         const fullDescription = formUnit ? `${numQty} ${formUnit} de ${formDesc}` : formDesc;
         const mealData = {
             user_id: profile.id,
-            meal_date: today(),
+            meal_date: selectedDate,
             meal_type: modalMealType,
             description: fullDescription,
             calories: formCal,
@@ -387,7 +439,7 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
             const remaining = meals.filter((m) => m.id !== selectedMeal.id);
             await updateDailyNutrition(remaining);
             setSelectedMeal(null);
-            await loadData();
+            await loadData(selectedDate);
             onUpdate();
         }
         setDeleting(false);
@@ -414,7 +466,7 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
             );
             await updateDailyNutrition(updated);
             setSelectedMeal(null);
-            await loadData();
+            await loadData(selectedDate);
             onUpdate();
         }
         setEditSaving(false);
@@ -446,12 +498,12 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
         setWaterCups(prev => {
             let n = idx + 1;
             if (prev === n) n--;
-            localStorage.setItem(`water_${profile.id}_${today()}`, n.toString());
+            localStorage.setItem(`water_${profile.id}_${selectedDate}`, n.toString());
             // Persist to Supabase (update only — row is created by updateDailyNutrition on meal save)
             supabase.from('daily_nutrition')
                 .update({ water_cups: n })
                 .eq('user_id', profile.id)
-                .eq('date', today())
+                .eq('date', selectedDate)
                 .then(({ error }) => { if (error) console.warn('Water save error:', error.message); });
             return n;
         });
@@ -459,6 +511,38 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
 
     return (
         <div className="flex flex-col px-4 py-5 gap-6 max-w-lg mx-auto pb-24">
+            {/* Date Navigation */}
+            <div className="flex items-center justify-between gap-2">
+                <button
+                    type="button"
+                    onClick={() => setSelectedDate(prevDay(selectedDate))}
+                    className="w-9 h-9 flex items-center justify-center rounded-full text-gray-400 hover:text-white transition-colors"
+                    style={{ backgroundColor: 'rgba(255,255,255,0.06)' }}
+                >
+                    <ChevronLeft size={18} />
+                </button>
+
+                <button
+                    type="button"
+                    onClick={() => { setCalendarMonth(new Date(selectedDate + 'T12:00:00')); setShowCalendar(true); }}
+                    className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold text-white transition-colors"
+                    style={{ backgroundColor: 'rgba(124,58,237,0.15)', border: '1px solid rgba(124,58,237,0.3)' }}
+                >
+                    <CalendarDays size={14} style={{ color: '#7C3AED' }} />
+                    {formatDateLabel(selectedDate)}
+                </button>
+
+                <button
+                    type="button"
+                    onClick={() => setSelectedDate(nextDay(selectedDate))}
+                    disabled={selectedDate >= today()}
+                    className="w-9 h-9 flex items-center justify-center rounded-full text-gray-400 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                    style={{ backgroundColor: 'rgba(255,255,255,0.06)' }}
+                >
+                    <ChevronRight size={18} />
+                </button>
+            </div>
+
             {/* Daily Summary Card (Foodvisor style) */}
             <div className="rounded-[24px] p-6 bg-white/[0.02] border border-white/5 backdrop-blur-md shadow-xl flex flex-col gap-6 w-full">
 
@@ -1027,6 +1111,100 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
                                         </motion.button>
                                     </div>
                                 </div>
+                            )}
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Calendar Modal */}
+            <AnimatePresence>
+                {showCalendar && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[100] flex items-end justify-center p-4 bg-black/60 backdrop-blur-sm"
+                        onClick={() => setShowCalendar(false)}
+                    >
+                        <motion.div
+                            initial={{ y: 60, opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            exit={{ y: 60, opacity: 0 }}
+                            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+                            className="w-full max-w-sm rounded-3xl p-5 pb-8"
+                            style={{ backgroundColor: '#1A1A2E', border: '1px solid rgba(255,255,255,0.1)' }}
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            {/* Month header */}
+                            <div className="flex items-center justify-between mb-5">
+                                <button
+                                    type="button"
+                                    onClick={() => setCalendarMonth(m => { const d = new Date(m); d.setMonth(d.getMonth() - 1); return d; })}
+                                    className="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:text-white"
+                                    style={{ backgroundColor: 'rgba(255,255,255,0.06)' }}
+                                >
+                                    <ChevronLeft size={16} />
+                                </button>
+                                <p className="text-white font-bold text-sm capitalize">
+                                    {calendarMonth.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
+                                </p>
+                                <button
+                                    type="button"
+                                    onClick={() => setCalendarMonth(m => { const d = new Date(m); d.setMonth(d.getMonth() + 1); return d; })}
+                                    className="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:text-white"
+                                    style={{ backgroundColor: 'rgba(255,255,255,0.06)' }}
+                                >
+                                    <ChevronRight size={16} />
+                                </button>
+                            </div>
+
+                            {/* Weekday labels */}
+                            <div className="grid grid-cols-7 mb-2">
+                                {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((d, i) => (
+                                    <div key={i} className="text-center text-[10px] font-semibold text-gray-600 uppercase py-1">{d}</div>
+                                ))}
+                            </div>
+
+                            {/* Day grid */}
+                            <div className="grid grid-cols-7 gap-y-1">
+                                {buildCalendarDays(calendarMonth).map((dateStr, i) => {
+                                    if (!dateStr) return <div key={i} />;
+                                    const isSelected = dateStr === selectedDate;
+                                    const isToday = dateStr === today();
+                                    const hasMeals = mealDates.has(dateStr);
+                                    return (
+                                        <div key={dateStr} className="flex flex-col items-center gap-0.5">
+                                            <button
+                                                type="button"
+                                                onClick={() => { setSelectedDate(dateStr); setShowCalendar(false); }}
+                                                className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold transition-all"
+                                                style={{
+                                                    backgroundColor: isSelected ? '#7C3AED' : isToday ? 'rgba(124,58,237,0.15)' : 'transparent',
+                                                    color: isSelected ? '#fff' : isToday ? '#A78BFA' : '#D1D5DB',
+                                                    border: isToday && !isSelected ? '1px solid rgba(124,58,237,0.4)' : 'none',
+                                                }}
+                                            >
+                                                {parseInt(dateStr.split('-')[2])}
+                                            </button>
+                                            {hasMeals && !isSelected && (
+                                                <div className="w-1 h-1 rounded-full" style={{ backgroundColor: '#7C3AED' }} />
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+
+                            {/* Jump to today */}
+                            {selectedDate !== today() && (
+                                <button
+                                    type="button"
+                                    onClick={() => { setSelectedDate(today()); setShowCalendar(false); }}
+                                    className="w-full mt-5 py-2.5 rounded-xl text-sm font-semibold text-purple-400 transition-colors"
+                                    style={{ backgroundColor: 'rgba(124,58,237,0.1)', border: '1px solid rgba(124,58,237,0.2)' }}
+                                >
+                                    Ir para Hoje
+                                </button>
                             )}
                         </motion.div>
                     </motion.div>
