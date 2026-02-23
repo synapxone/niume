@@ -12,7 +12,8 @@ Aplicativo de fitness pessoal com IA — treinos, nutrição, gamificação e ac
 | Estilo | Tailwind CSS + Framer Motion |
 | Backend / Auth / DB | Supabase (PostgreSQL + Row Level Security) |
 | Storage | Supabase Storage |
-| IA | Google Gemini API (`gemini-2.5-flash-lite` / `gemini-2.5-flash`) |
+| IA | Google Gemini API (`gemini-2.5-flash` / `gemini-2.5-flash-lite`) + Veo 2 (geração de vídeo) |
+| Exercícios | ExerciseDB via RapidAPI (com fallback gratuito `exercisedb-api.vercel.app`) |
 | Ícones | Lucide React |
 | Notificações | react-hot-toast |
 
@@ -26,6 +27,7 @@ Crie um arquivo `.env` na raiz com:
 VITE_SUPABASE_URL=https://<seu-projeto>.supabase.co
 VITE_SUPABASE_ANON_KEY=<chave-anon>
 VITE_GEMINI_API_KEY=<chave-gemini>
+VITE_RAPIDAPI_KEY=<chave-rapidapi>   # ExerciseDB (opcional — usa API gratuita como fallback)
 ```
 
 ---
@@ -109,8 +111,22 @@ create table daily_nutrition (
   total_carbs numeric(6,1) default 0,
   total_fat numeric(6,1) default 0,
   goal_calories int default 2000,
+  water_cups int default 0,
   unique(user_id, date)
 );
+
+-- Cache de mídia dos exercícios (GIFs / vídeos Veo 2)
+create table exercise_media (
+  slug text primary key,
+  url text not null,
+  media_type text not null check (media_type in ('gif', 'video')),
+  created_at timestamptz default now()
+);
+
+alter table exercise_media enable row level security;
+create policy "Public read"  on exercise_media for select using (true);
+create policy "Auth insert"  on exercise_media for insert with check (true);
+create policy "Auth update"  on exercise_media for update using (true);
 
 -- Gamificação (pontos, nível, streak, recompensas)
 create table gamification (
@@ -161,6 +177,7 @@ alter table daily_nutrition   enable row level security;
 alter table gamification      enable row level security;
 alter table ai_conversations  enable row level security;
 alter table progress_entries  enable row level security;
+-- exercise_media: políticas já incluídas na criação acima
 
 -- Políticas (usuário acessa apenas seus próprios dados)
 create policy "own" on profiles         for all using (auth.uid() = id);
@@ -181,6 +198,7 @@ No painel do Supabase → Storage → criar dois buckets **públicos**:
 |---|---|
 | `body-photos` | Foto corporal do onboarding |
 | `progress-photos` | Fotos da timeline de evolução |
+| `exercise-media` | GIFs/vídeos dos exercícios (cache do pipeline ExerciseDB → Veo 2) |
 
 ---
 
@@ -195,8 +213,9 @@ src/
 ├── lib/
 │   └── supabase.ts          # Cliente Supabase
 ├── services/
-│   ├── geminiService.ts     # Integração Gemini: plano de treino, dieta, análise de foto/texto
-│   ├── exerciseService.ts   # Busca GIFs na ExerciseDB
+│   ├── geminiService.ts          # Integração Gemini: plano de treino, dieta, análise de foto/texto
+│   ├── exerciseService.ts        # ExerciseDB via RapidAPI + fallback API gratuita (por nome)
+│   ├── exerciseMediaService.ts   # Pipeline de mídia: DB cache → ExerciseDB download → Veo 2
 │   └── notificationService.ts
 └── components/
     ├── LandingPage.tsx      # Tela inicial + autenticação (magic link / OAuth)
@@ -221,16 +240,25 @@ src/
 
 ### Treino
 - Visualização do treino do dia (calculado pelo dia da semana)
-- GIFs dos exercícios via ExerciseDB
+- Mídia dos exercícios via pipeline em 3 camadas:
+  1. Cache no Supabase (`exercise_media` + bucket `exercise-media`) → resposta instantânea
+  2. ExerciseDB (RapidAPI ou API gratuita por nome) → faz download e armazena no Supabase
+  3. Veo 2 (Google) → gera vídeo com estilo silhueta minimalista, armazena permanentemente
+- Carregamento lazy (dispara apenas quando o exercício é expandido)
+- Spinner "Gerando demonstração…" enquanto Veo processa (~1 min, apenas na 1ª vez)
+- Suporte a `<img>` (GIF) e `<video autoplay loop muted>` (MP4)
 - Registro de conclusão com seleção de exercícios completados
 - Ganho de pontos ao concluir (150 pts completo / 75 pts parcial)
 
 ### Nutrição
-- Registro por foto (Gemini Vision identifica alimento e estima macros)
+- Registro por foto: botões separados **Câmera** (`capture="environment"`) e **Galeria** (sem capture)
 - Registro por texto com busca inteligente + sugestão de unidades de medida
+- Gemini Vision identifica alimento e estima macros automaticamente
 - Edição e exclusão de itens registrados
 - Anel de progresso calórico diário + barras de macros
+- Rastreador de água (copos) sincronizado com Supabase (`daily_nutrition.water_cups`)
 - Histórico de 7 dias
+- Notificações às 14h (almoço) e 20h30 (jantar) se não houver registro
 
 ### Gamificação
 - Sistema de pontos, XP e níveis
@@ -296,7 +324,7 @@ npx tsc --noEmit  # type check
 
 ## Histórico / Changelog Diário (Comunicação entre Agentes)
 
-**Status e Versão Atual:** v1.0.3
+**Status e Versão Atual:** v1.1.0
 
 ### Últimas Atualizações e Correções (Fev/2026):
 - **Design Dashboard Stats:** Os cartões na `Dashboard.tsx` receberam uma reformulação completa para exibir pequenos gráficos SVG/Backgrounds renderizados atrás dos números.
@@ -311,3 +339,8 @@ npx tsc --noEmit  # type check
 - **Aparência e Temas:** Implementado suporte para alternância entre Claro e Escuro (Tema) persistindo no `localStorage`.
 - **Navegação de UI (Recuperação):** O app agora grava qual Aba o usuário estava vendo via `sessionStorage`. Se ao abrir a Câmera o aparelho ficar sem memória e der "Refresh" no painel inteiro, o componente vai renascer automaticamente de volta na Aba de Dieta ao invés de voltar pra Home inicial.
 - **Media Caching (Desempenho):** O serviço `exerciseMediaService` foi recentemente implementado para suportar vídeos embarcados além de GIFs para os exercícios do `WorkoutDay.tsx`.
+- **Pipeline de Mídia (Exercícios):** `exerciseMediaService.ts` implementa 3 camadas: (1) cache Supabase DB + Storage, (2) ExerciseDB download e rearmazenamento, (3) geração Veo 2 com prompt estilo silhueta minimalista. Carregamento lazy ao expandir exercício.
+- **ExerciseDB Fallback Gratuito:** `exerciseService.ts` agora inclui `getByNameFree()` que consulta `exercisedb-api.vercel.app` sem necessidade de chave RapidAPI, usando cache em memória por nome.
+- **Tab Persistence (Fix):** A persistência da aba ativa foi corrigida de `sessionStorage` (perdido no refresh) para `localStorage` (persistente entre sessões). O app agora restaura a aba correta ao atualizar a página.
+- **Timezone Bug (Fix Crítico):** Corrigido bug onde `new Date().toISOString().split('T')[0]` retornava a data UTC — no Brasil (UTC-3), após as 21h local o app mostrava a dieta/treino do dia seguinte (vazios). Todos os arquivos (`NutritionLog.tsx`, `WorkoutDay.tsx`, `ProfileView.tsx`, `App.tsx`) passaram a usar `getFullYear()/getMonth()/getDate()` para data local.
+- **CI/CD (deploy.yml):** Adicionado `VITE_RAPIDAPI_KEY` nas variáveis de ambiente do GitHub Actions para que a ExerciseDB funcione em produção (GitHub Pages).
