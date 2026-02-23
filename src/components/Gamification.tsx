@@ -98,7 +98,7 @@ export default function GamificationView({ gamification, profile, onUpdate }: Pr
         return (
             <div className="flex flex-col items-center justify-center py-24 px-6 text-center gap-4">
                 <span className="text-5xl">⭐</span>
-                <p className="text-white font-bold text-lg">Sem dados de gamificação</p>
+                <p className="text-text-main font-bold text-lg">Sem dados de gamificação</p>
                 <p className="text-gray-400 text-sm">Complete um treino ou registre uma refeição para começar a ganhar pontos!</p>
             </div>
         );
@@ -183,13 +183,13 @@ export default function GamificationView({ gamification, profile, onUpdate }: Pr
             {/* Header / Config row */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h2 className="text-white font-bold text-xl tracking-tight">Sua Evolução</h2>
-                    <p className="text-gray-400 text-xs">Acompanhe seu progresso e metas</p>
+                    <h2 className="text-text-main font-bold text-xl tracking-tight">Sua Evolução</h2>
+                    <p className="text-text-muted text-xs">Acompanhe seu progresso e metas</p>
                 </div>
                 <div className="flex items-center gap-2">
                     <button
                         onClick={() => setShowEvoModal(true)}
-                        className="h-10 px-4 rounded-xl bg-indigo-600 border border-indigo-500/50 flex items-center justify-center gap-2 text-white font-semibold hover:bg-indigo-500 transition-colors shadow-[0_0_15px_rgba(79,70,229,0.4)]"
+                        className="h-10 px-4 rounded-xl bg-primary border border-primary/50 flex items-center justify-center gap-2 text-white font-semibold hover:bg-primary-hover transition-colors shadow-[0_0_15px_rgba(var(--primary-rgb),0.4)]"
                     >
                         <Camera size={16} />
                         Avaliação
@@ -198,18 +198,18 @@ export default function GamificationView({ gamification, profile, onUpdate }: Pr
                         onClick={() => setShowConfigModal(true)}
                         className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition-colors shadow-sm"
                     >
-                        <Settings2 size={20} />
+                        <Settings2 size={20} className="text-text-muted hover:text-text-main" />
                     </button>
                 </div>
             </div>
 
             {/* Premium Chart & Macro Stats */}
-            <div className="relative overflow-hidden rounded-[24px] p-5 bg-gradient-to-br from-[#1A1A2E] to-[#12121A] border border-white/5 shadow-2xl flex flex-col gap-5">
+            <div className="relative overflow-hidden rounded-[24px] p-5 bg-card border border-white/5 shadow-2xl flex flex-col gap-5">
                 <div className="absolute -top-10 -right-10 w-32 h-32 bg-indigo-500/10 blur-[50px] rounded-full pointer-events-none" />
 
                 <div className="flex justify-between items-center relative z-10">
                     <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                        <TrendingUp size={16} className="text-indigo-400" />
+                        <TrendingUp size={16} className="text-primary" />
                         Histórico de Calorias da Semana
                     </h3>
                 </div>
@@ -230,7 +230,7 @@ export default function GamificationView({ gamification, profile, onUpdate }: Pr
                                             initial={{ height: 0 }}
                                             animate={{ height: `${pct}%` }}
                                             transition={{ duration: 1, ease: 'easeOut' }}
-                                            className={`absolute bottom-0 w-full rounded-t-md ${isOver ? 'bg-orange-500' : 'bg-indigo-500'}`}
+                                            className={`absolute bottom-0 w-full rounded-t-md ${isOver ? 'bg-orange-500' : 'bg-primary'}`}
                                         />
                                         {/* Goal line tick */}
                                         <div className="absolute top-[30%] w-full border-t border-dashed border-white/30" />
@@ -248,7 +248,7 @@ export default function GamificationView({ gamification, profile, onUpdate }: Pr
             </div>
 
             {/* Level & XP */}
-            <div className="rounded-2xl p-6 flex flex-col gap-5 bg-white/[0.02] border backdrop-blur-sm shadow-xl" style={{ borderColor: 'rgba(99,102,241,0.1)' }}>
+            <div className="rounded-2xl p-6 flex flex-col gap-5 bg-card border backdrop-blur-sm shadow-xl" style={{ borderColor: 'rgba(var(--primary-rgb),0.1)' }}>
                 <div className="flex items-center justify-between">
                     <div>
                         <p className="text-[11px] text-gray-500 font-medium uppercase tracking-widest">Nível Atual</p>
@@ -256,14 +256,14 @@ export default function GamificationView({ gamification, profile, onUpdate }: Pr
                             key={level}
                             initial={{ scale: 1.3, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
-                            className="text-4xl font-bold mt-1 bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-purple-400"
+                            className="text-4xl font-bold mt-1 bg-clip-text text-transparent bg-gradient-to-r from-primary to-purple-400"
                         >
                             {level}
                         </motion.p>
                     </div>
                     <div className="text-right">
                         <p className="text-[11px] text-gray-500 font-medium uppercase tracking-widest">Pontos Totais</p>
-                        <p className="text-2xl font-bold text-white mt-1">
+                        <p className="text-2xl font-bold text-text-main mt-1">
                             <AnimatedCounter value={points} />
                         </p>
                     </div>
@@ -271,12 +271,12 @@ export default function GamificationView({ gamification, profile, onUpdate }: Pr
                 {/* XP bar */}
                 <div>
                     <div className="flex justify-between text-xs text-gray-400 mb-2 font-medium">
-                        <span>XP Progress</span>
-                        <span className="text-indigo-300">{points % xpForThis} / {xpForThis}</span>
+                        <span>Progresso de XP</span>
+                        <span className="text-primary">{points % xpForThis} / {xpForThis}</span>
                     </div>
                     <div className="h-2 rounded-full overflow-hidden bg-black/40">
                         <motion.div
-                            className="h-full rounded-full bg-gradient-to-r from-indigo-600 to-indigo-400"
+                            className="h-full rounded-full bg-gradient-to-r from-primary to-primary/60"
                             animate={{ width: `${xpProgress}%` }}
                             transition={{ duration: 0.8, ease: 'easeOut' }}
                         />
@@ -287,16 +287,16 @@ export default function GamificationView({ gamification, profile, onUpdate }: Pr
 
             {/* Stats row */}
             <div className="grid grid-cols-3 gap-3">
-                <StatBubble icon={<Flame size={18} className="text-red-400" />} label="Sequência" value={`${streak_days}d`} />
-                <StatBubble icon={<Dumbbell size={18} className="text-indigo-400" />} label="Treinos" value={String(total_workouts)} />
-                <StatBubble icon={<UtensilsCrossed size={18} className="text-emerald-400" />} label="Refeições" value={String(total_meals_logged)} />
+                <StatBubble icon={<Flame size={18} className="text-orange-400" />} label="Sequência" value={`${streak_days}d`} />
+                <StatBubble icon={<Dumbbell size={18} className="text-primary" />} label="Treinos" value={String(total_workouts)} />
+                <StatBubble icon={<UtensilsCrossed size={18} className="text-proteina" />} label="Refeições" value={String(total_meals_logged)} />
             </div>
 
             {/* Rewards available */}
             {rewards_available.length > 0 && (
                 <div className="flex flex-col gap-3">
                     <h3 className="text-white font-bold flex items-center gap-2">
-                        <Gift size={18} style={{ color: '#F59E0B' }} />
+                        <Gift size={18} className="text-accent" />
                         Prêmios Disponíveis
                     </h3>
                     {rewards_available.map((reward, idx) => (
@@ -321,8 +321,8 @@ export default function GamificationView({ gamification, profile, onUpdate }: Pr
                             ) : (
                                 <motion.div
                                     layout
-                                    className="flex items-center gap-4 px-4 py-4 rounded-2xl"
-                                    style={{ backgroundColor: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)' }}
+                                    className="flex items-center gap-4 px-4 py-4 rounded-2xl achievement-glow"
+                                    style={{ backgroundColor: 'rgba(var(--accent-rgb), 0.08)', border: '1px solid rgba(var(--accent-rgb), 0.25)' }}
                                 >
                                     <span className="text-3xl">{reward.emoji}</span>
                                     <div className="flex-1">
@@ -347,7 +347,7 @@ export default function GamificationView({ gamification, profile, onUpdate }: Pr
             {/* Rewards catalog */}
             <div className="flex flex-col gap-3">
                 <h3 className="text-white font-bold flex items-center gap-2 text-sm">
-                    <Star size={16} className="text-indigo-400" />
+                    <Star size={16} className="text-primary" />
                     Catálogo de Prêmios
                 </h3>
                 {REWARDS_CATALOG.map((reward) => {
@@ -361,7 +361,7 @@ export default function GamificationView({ gamification, profile, onUpdate }: Pr
                             layout
                             className={`flex flex-col gap-3 px-4 py-4 rounded-2xl bg-white/[0.02] border transition-colors ${alreadyOwned ? 'opacity-60 grayscale-[0.5]' : ''}`}
                             style={{
-                                borderColor: canAfford ? 'rgba(52,211,153,0.3)' : 'rgba(255,255,255,0.05)'
+                                borderColor: canAfford ? 'var(--proteina)' : 'rgba(var(--text-main-rgb), 0.05)'
                             }}
                         >
                             <div className="flex items-center gap-4">
@@ -422,8 +422,7 @@ export default function GamificationView({ gamification, profile, onUpdate }: Pr
                         Prêmios Utilizados
                     </h3>
                     {rewards_earned.map((reward, idx) => (
-                        <div key={idx} className="flex items-center gap-3 px-4 py-3 rounded-xl opacity-50"
-                            style={{ backgroundColor: '#1A1A2E' }}>
+                        <div key={idx} className="flex items-center gap-3 px-4 py-3 rounded-xl opacity-50 bg-card">
                             <span className="text-2xl">{reward.emoji}</span>
                             <div>
                                 <p className="text-white text-sm">{reward.name}</p>
@@ -446,7 +445,7 @@ export default function GamificationView({ gamification, profile, onUpdate }: Pr
                             initial={{ y: 200, opacity: 0 }}
                             animate={{ y: 0, opacity: 1 }}
                             exit={{ y: 200, opacity: 0 }}
-                            className="bg-[#111116] border border-white/10 p-6 rounded-3xl w-full max-w-sm flex flex-col gap-6 -mb-6 sm:mb-0 pb-12 sm:pb-6"
+                            className="bg-dark border border-white/10 p-6 rounded-3xl w-full max-w-sm flex flex-col gap-6 -mb-6 sm:mb-0 pb-12 sm:pb-6"
                         >
                             <div className="flex justify-between items-center">
                                 <h3 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
@@ -508,7 +507,7 @@ export default function GamificationView({ gamification, profile, onUpdate }: Pr
                             initial={{ y: 200, opacity: 0 }}
                             animate={{ y: 0, opacity: 1 }}
                             exit={{ y: 200, opacity: 0 }}
-                            className="bg-[#1A1A2E] border border-white/10 p-6 rounded-3xl w-full max-w-sm flex flex-col gap-6 -mb-6 sm:mb-0 pb-12 sm:pb-6 shadow-2xl relative overflow-hidden"
+                            className="bg-card border border-white/10 p-6 rounded-3xl w-full max-w-sm flex flex-col gap-6 -mb-6 sm:mb-0 pb-12 sm:pb-6 shadow-2xl relative overflow-hidden"
                         >
                             <div className="absolute -top-20 -right-20 w-40 h-40 bg-indigo-500/20 blur-[60px] rounded-full pointer-events-none" />
 
@@ -553,7 +552,7 @@ export default function GamificationView({ gamification, profile, onUpdate }: Pr
                             <button
                                 onClick={handleEvolution}
                                 disabled={evoSaving}
-                                className="w-full h-14 mt-2 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 disabled:opacity-50 font-bold text-white transition-all shadow-lg flex items-center justify-center gap-2 relative z-10"
+                                className="w-full h-14 mt-2 rounded-xl bg-gradient-to-r from-primary to-purple-600 hover:from-primary-hover hover:to-purple-500 disabled:opacity-50 font-bold text-white transition-all shadow-lg flex items-center justify-center gap-2 relative z-10"
                             >
                                 {evoSaving ? <><Loader2 size={18} className="animate-spin" /> Analisando Corpo e Treinos...</> : 'Analisar e Ajustar Tudo'}
                             </button>

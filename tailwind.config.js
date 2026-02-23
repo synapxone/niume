@@ -4,11 +4,16 @@ export default {
   theme: {
     extend: {
       colors: {
-        primary:   '#7C3AED',
-        secondary: '#10B981',
-        accent:    '#F59E0B',
-        dark:      '#0F0F1A',
-        card:      '#1A1A2E',
+        primary: 'var(--primary)',
+        secondary: 'var(--proteina)',
+        accent: 'var(--accent)',
+        dark: 'var(--bg-main)',
+        card: 'var(--bg-card)',
+        'text-main': 'var(--text-main)',
+        'text-muted': 'var(--text-muted)',
+        proteina: 'var(--proteina)',
+        carbos: 'var(--carbos)',
+        gordura: 'var(--gordura)',
       },
     },
   },
