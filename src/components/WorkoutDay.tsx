@@ -93,26 +93,39 @@ export default function WorkoutDayView({ plan, profile, onComplete }: Props) {
 
     // Check if workout session already exists for today
     useEffect(() => {
-        if (!todayData || todayData.type === 'rest') return;
+        if (!todayData || todayData.type === 'rest') {
+            setSessionDone(false);
+            return;
+        }
 
-        async function loadTodaySession() {
-            const todayStr = new Date().toISOString().split('T')[0];
+        async function loadDaySession() {
+            setSessionDone(false); // Reset while loading
+
+            // Calculate the date for the selected day in current week
+            const now = new Date();
+            const currentDay = now.getDay() === 0 ? 6 : now.getDay() - 1; // Mon=0, Sun=6
+            const diff = selectedDayIndex - currentDay;
+            const targetDate = new Date(now);
+            targetDate.setDate(now.getDate() + diff);
+            const dateStr = targetDate.toISOString().split('T')[0];
+
             const { data } = await supabase
                 .from('workout_sessions')
                 .select('*')
                 .eq('user_id', profile.id)
-                .eq('session_date', todayStr)
+                .eq('session_date', dateStr)
                 .maybeSingle();
 
             if (data) {
                 setSessionDone(true);
                 setSummaryCompleted(data.exercises_completed?.length || 0);
-                setSummaryTotal(todayData.exercises.length);
+                setSummaryTotal(todayData?.exercises.length || 0);
                 setSummaryDuration(data.duration_minutes || 0);
                 setSummaryCalories(Math.round(5 * profile.weight * (data.duration_minutes / 60)));
+                setSummaryLoadKg(data.total_load_kg || 0);
 
                 const doneProgress: Record<number, SetState[]> = {};
-                todayData.exercises.forEach((ex, i) => {
+                todayData?.exercises.forEach((ex, i) => {
                     const isDone = data.exercises_completed?.includes(ex.name);
                     doneProgress[i] = Array.from({ length: ex.sets }).map(() => ({
                         weight: '0',
@@ -122,35 +135,36 @@ export default function WorkoutDayView({ plan, profile, onComplete }: Props) {
                     }));
                 });
                 setSetsProgress(doneProgress);
+                return;
             }
-        }
-        loadTodaySession();
 
-        // Preload free-exercise-db index in background for faster lazy loads
+            // Check localStorage for today specifically if we haven't found a DB session
+            const alreadyDone = localStorage.getItem(`workout_done_${profile.id}_${dateStr}`);
+            if (alreadyDone === 'true') {
+                setSessionDone(true);
+                return;
+            }
+
+            const initialProgress: Record<number, SetState[]> = {};
+            todayData?.exercises.forEach((ex, i) => {
+                const savedWeight = localStorage.getItem(`weight_${ex.exercise_id}`) || '';
+                initialProgress[i] = Array.from({ length: ex.sets }).map(() => ({
+                    weight: savedWeight,
+                    status: 'idle',
+                    time: 0,
+                    showWeightInput: !!savedWeight
+                }));
+            });
+            setSetsProgress(initialProgress);
+        }
+
+        loadDaySession();
+
+        // Preload free-exercise-db index in background
         exerciseMediaService.preloadFreeDb();
-        // Load cached media from DB (fast batch query)
         const exerciseMeta = todayData.exercises.map((e) => ({ id: e.exercise_id, name: e.name }));
         exerciseMediaService.getCachedBatch(exerciseMeta).then(setMediaData);
-
-        // Don't reset mapping if already done
-        const alreadyDone = localStorage.getItem(`workout_done_${profile.id}_${new Date().toISOString().split('T')[0]}`);
-        if (alreadyDone === 'true') {
-            setSessionDone(true);
-            return;
-        }
-
-        const initialProgress: Record<number, SetState[]> = {};
-        todayData.exercises.forEach((ex, i) => {
-            const savedWeight = localStorage.getItem(`weight_${ex.exercise_id}`) || '';
-            initialProgress[i] = Array.from({ length: ex.sets }).map(() => ({
-                weight: savedWeight,
-                status: 'idle',
-                time: 0,
-                showWeightInput: !!savedWeight
-            }));
-        });
-        setSetsProgress(initialProgress);
-    }, [todayData]);
+    }, [todayData, selectedDayIndex]);
 
     // Lazy-load media when exercise is expanded and not yet cached
     useEffect(() => {
@@ -868,7 +882,7 @@ export default function WorkoutDayView({ plan, profile, onComplete }: Props) {
                         })}
                     </div>
 
-                    {!sessionDone && getCompletedCount() > 0 && (
+                    {!sessionDone && (
                         <motion.button initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} onClick={handleFinishWorkout} disabled={saving} className="w-full py-4 rounded-2xl font-bold text-white text-base flex items-center justify-center gap-2 mb-8 mt-4" style={{ background: getCompletedCount() === totalCount ? 'linear-gradient(135deg, #10B981, #059669)' : 'linear-gradient(135deg, #7C3AED, #6d28d9)', opacity: saving ? 0.7 : 1 }}>
                             {saving ? <motion.div animate={{ rotate: 360 }} transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }} className="w-5 h-5 border-2 border-white border-t-transparent rounded-full" /> : <><Trophy size={18} /> {getCompletedCount() === totalCount ? 'Treino Concluído! 🎉' : `Finalizar (${getCompletedCount()}/${totalCount})`}</>}
                         </motion.button>
