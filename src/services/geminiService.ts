@@ -388,6 +388,32 @@ IMPORTANTE: "description" deve ser APENAS o nome do alimento, sem descrever emba
         return { description: 'Refeição não identificada', calories: 0, protein: 0, carbs: 0, fat: 0 };
     },
 
+    async analyzeFoodPhotoItems(base64: string, mimeType = 'image/jpeg'): Promise<FoodAnalysis[]> {
+        const prompt = `Identifique TODOS os alimentos e itens visíveis nesta foto e estime os valores nutricionais de cada um separadamente.
+
+Retorne APENAS um array JSON válido:
+[
+  { "description": "Nome do item 1", "calories": 0, "protein": 0, "carbs": 0, "fat": 0 },
+  { "description": "Nome do item 2", "calories": 0, "protein": 0, "carbs": 0, "fat": 0 }
+]
+
+REGRAS:
+- Liste CADA alimento individualmente (ex: arroz, feijão, frango, salada, suco)
+- "description" deve ser apenas o nome curto do alimento em português
+- Se houver apenas 1 item, retorne array com 1 elemento
+- Inclua bebidas e acompanhamentos visíveis
+- Seja conservador e realista. Apenas números inteiros.`;
+
+        try {
+            const text = await analyzeImageWithGemini(base64, mimeType, prompt);
+            const parsed = parseSafeJSON(text);
+            return Array.isArray(parsed) ? parsed : [parsed];
+        } catch (e) {
+            console.error('Error analyzing food photo items:', e);
+        }
+        return [{ description: 'Refeição', calories: 0, protein: 0, carbs: 0, fat: 0 }];
+    },
+
     async getAssistantResponse(userMessage: string, context: string): Promise<string> {
         const prompt = `Você é o assistente personal trainer do app Personall. Seu nome é "Pers".
 Você é motivador, direto e especialista em fitness e nutrição.

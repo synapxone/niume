@@ -4,7 +4,7 @@ import { Plus, Camera, PenLine, X, Loader2, Sparkles, Pencil, Trash2, Droplets, 
 import toast from 'react-hot-toast';
 import { supabase } from '../lib/supabase';
 import { geminiService } from '../services/geminiService';
-import type { Profile, Meal, MealType } from '../types';
+import type { Profile, Meal, MealType, FoodAnalysis } from '../types';
 
 interface Props {
     profile: Profile;
@@ -137,7 +137,8 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
     const [waterCups, setWaterCups] = useState(0);
     const [showModal, setShowModal] = useState(false);
     const [modalMealType, setModalMealType] = useState<MealType>('breakfast');
-    const [modalMode, setModalMode] = useState<'choose' | 'photo' | 'manual'>('choose');
+    const [modalMode, setModalMode] = useState<'choose' | 'photo' | 'manual' | 'photoItems'>('choose');
+    const [photoItems, setPhotoItems] = useState<FoodAnalysis[]>([]);
     const [analyzeLoading, setAnalyzeLoading] = useState(false);
 
     // Form state
@@ -356,6 +357,68 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
             setModalMode('manual');
         } finally {
             setAnalyzeLoading(false);
+        }
+    }
+
+    async function handleCameraPhoto(file: File) {
+        setModalMode('photo');
+        setAnalyzeLoading(true);
+        try {
+            const { base64, mimeType } = await compressImage(file);
+            const items = await geminiService.analyzeFoodPhotoItems(base64, mimeType);
+            if (items.length === 1) {
+                setFormDesc(items[0].description);
+                setFormCal(items[0].calories);
+                setFormProt(items[0].protein);
+                setFormCarbs(items[0].carbs);
+                setFormFat(items[0].fat);
+                setAnalyzed(true);
+                setModalMode('manual');
+            } else {
+                setPhotoItems(items);
+                setModalMode('photoItems');
+            }
+        } catch (e) {
+            console.error('Camera photo analysis error', e);
+            toast.error('Não foi possível analisar a foto. Tente novamente ou preencha manualmente.');
+            setModalMode('manual');
+        } finally {
+            setAnalyzeLoading(false);
+        }
+    }
+
+    async function saveAllPhotoItems(items: FoodAnalysis[]) {
+        setSaving(true);
+        const toastId = toast.loading(`Salvando ${items.length} itens...`);
+        try {
+            const inserts = items.map(item => ({
+                user_id: profile.id,
+                meal_date: selectedDate,
+                meal_type: modalMealType,
+                description: item.description,
+                calories: item.calories,
+                protein: item.protein,
+                carbs: item.carbs,
+                fat: item.fat,
+                logged_at: new Date().toISOString(),
+            }));
+            const { data: inserted, error } = await supabase.from('meals').insert(inserts).select();
+            if (error || !inserted) {
+                toast.error('Erro ao salvar refeições.', { id: toastId });
+                return;
+            }
+            toast.success(`${items.length} ${items.length === 1 ? 'item registrado' : 'itens registrados'}!`, { id: toastId });
+            setShowModal(false);
+            resetForm();
+            setPhotoItems([]);
+            const newMeals = [...meals, ...(inserted as Meal[])];
+            setMeals(newMeals);
+            await updateDailyNutrition(newMeals);
+            onUpdate();
+        } catch (e) {
+            toast.error('Erro ao salvar.', { id: toastId });
+        } finally {
+            setSaving(false);
         }
     }
 
@@ -619,18 +682,42 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
                 </div>
             </div>
 
-            {/* Water Tracker (Slimmer) */}
-            <div className="rounded-[20px] p-4 flex flex-row items-center justify-between gap-4 bg-white/[0.02] border border-blue-500/20 backdrop-blur-sm transition-colors hover:bg-white/[0.04]">
-                <div className="flex flex-col">
-                    <p className="text-xs font-bold text-blue-400 uppercase tracking-wider flex items-center gap-1.5"><Droplets size={14} /> Água</p>
-                    <p className="text-[10px] text-gray-500 mt-0.5">Meta: {Math.max(1, goalCups)} copos</p>
+            {/* Water Tracker (Premium) */}
+            <div className="rounded-[20px] p-5 flex flex-col gap-4 bg-white/[0.02] border border-blue-500/20 backdrop-blur-sm">
+                {/* Header */}
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <Droplets size={16} style={{ color: '#60A5FA' }} />
+                        <p className="text-sm font-bold text-blue-400 uppercase tracking-wider">Água</p>
+                    </div>
+                    <span className="text-[11px] font-semibold" style={{ color: waterCups >= goalCups ? '#34D399' : '#6B7280' }}>
+                        {waterCups >= goalCups ? 'Meta atingida! 🎉' : `Falta ${((goalCups - waterCups) * 0.25).toFixed(2).replace('.', ',')} L`}
+                    </span>
                 </div>
-                <div className="flex gap-1.5 overflow-x-auto pb-1 custom-scrollbar">
+
+                {/* Liters progress */}
+                <div className="flex flex-col gap-1.5">
+                    <div className="flex justify-between text-xs">
+                        <span className="font-bold text-white">{(waterCups * 0.25).toFixed(2).replace('.', ',')} L</span>
+                        <span className="text-gray-500">de {(waterGoalMl / 1000).toFixed(1).replace('.', ',')} L · {goalCups} copos</span>
+                    </div>
+                    <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: 'rgba(59,130,246,0.12)' }}>
+                        <motion.div
+                            className="h-full rounded-full"
+                            style={{ backgroundColor: '#60A5FA' }}
+                            animate={{ width: `${Math.min((waterCups / Math.max(goalCups, 1)) * 100, 100)}%` }}
+                            transition={{ duration: 0.5 }}
+                        />
+                    </div>
+                </div>
+
+                {/* Cups grid — no horizontal scroll */}
+                <div className="flex flex-wrap gap-2">
                     {Array.from({ length: goalCups }).map((_, i) => (
                         <button
                             key={i}
                             onClick={() => handleCupClick(i)}
-                            className="text-xl hover:scale-110 transition-transform flex-shrink-0"
+                            className="text-xl hover:scale-110 active:scale-95 transition-transform"
                             style={{ opacity: i < waterCups ? 1 : 0.2, filter: i < waterCups ? 'drop-shadow(0 2px 4px rgba(59,130,246,0.5))' : 'none' }}
                         >
                             💧
@@ -771,17 +858,17 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
                                         </div>
                                         <div>
                                             <p className="text-white font-semibold text-sm">Câmera</p>
-                                            <p className="text-gray-400 text-xs">Tire uma foto agora — IA analisa automaticamente</p>
+                                            <p className="text-gray-400 text-xs">Tire uma foto — IA detecta cada item do prato</p>
                                         </div>
                                         <input
                                             type="file"
                                             accept="image/*"
+                                            capture="environment"
                                             className="hidden"
                                             onChange={(e) => {
                                                 const f = e.target.files?.[0];
                                                 if (f) {
-                                                    // Add strict delay so iOS/Android WebView can finish native camera lifecycle and free RAM before React unmounts input
-                                                    setTimeout(() => handlePhotoAnalysis(f), 500);
+                                                    setTimeout(() => handleCameraPhoto(f), 500);
                                                 }
                                                 e.target.value = '';
                                             }}
@@ -832,6 +919,65 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
                                 <div className="flex flex-col items-center gap-4 py-8">
                                     <Loader2 size={32} className="animate-spin" style={{ color: '#7C3AED' }} />
                                     <p className="text-gray-400 text-sm">Analisando a foto com IA...</p>
+                                </div>
+                            )}
+
+                            {modalMode === 'photoItems' && (
+                                <div className="flex flex-col gap-4">
+                                    <p className="text-gray-400 text-xs font-semibold uppercase tracking-wider">
+                                        {photoItems.length} {photoItems.length === 1 ? 'item detectado' : 'itens detectados'} — toque no × para remover
+                                    </p>
+                                    <div className="flex flex-col gap-2">
+                                        {photoItems.map((item, idx) => (
+                                            <div
+                                                key={idx}
+                                                className="flex items-center gap-3 px-4 py-3 rounded-xl"
+                                                style={{ backgroundColor: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
+                                            >
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-white text-sm font-medium truncate">{item.description}</p>
+                                                    <p className="text-gray-500 text-xs mt-0.5">
+                                                        {item.calories} kcal · P {item.protein}g · C {item.carbs}g · G {item.fat}g
+                                                    </p>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setPhotoItems(prev => prev.filter((_, i) => i !== idx))}
+                                                    className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-full text-gray-500 hover:text-red-400 transition-colors"
+                                                    style={{ backgroundColor: 'rgba(239,68,68,0.08)' }}
+                                                >
+                                                    <X size={14} />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    {photoItems.length === 0 && (
+                                        <p className="text-center text-gray-500 text-sm py-4">Nenhum item. Preencha manualmente.</p>
+                                    )}
+
+                                    <div className="flex gap-3 mt-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => setModalMode('manual')}
+                                            className="flex-1 py-3 rounded-xl text-sm font-semibold text-gray-400"
+                                            style={{ backgroundColor: 'rgba(255,255,255,0.06)' }}
+                                        >
+                                            Manual
+                                        </button>
+                                        <motion.button
+                                            whileHover={{ scale: 1.02 }}
+                                            whileTap={{ scale: 0.97 }}
+                                            type="button"
+                                            onClick={() => saveAllPhotoItems(photoItems)}
+                                            disabled={saving || photoItems.length === 0}
+                                            className="flex-[2] py-3 rounded-xl font-bold text-white flex items-center justify-center gap-2"
+                                            style={{ background: 'linear-gradient(135deg, #7C3AED, #6d28d9)', opacity: (saving || photoItems.length === 0) ? 0.5 : 1 }}
+                                        >
+                                            {saving ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                                            {saving ? 'Salvando...' : `Salvar ${photoItems.length} ${photoItems.length === 1 ? 'item' : 'itens'}`}
+                                        </motion.button>
+                                    </div>
                                 </div>
                             )}
 
