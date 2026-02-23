@@ -85,7 +85,7 @@ export default function App() {
             const min = now.getMinutes();
             // Check at exactly 14:00 (lunch) or 20:30 (dinner)
             if ((hr === 14 && min === 0) || (hr === 20 && min === 30)) {
-                const date = now.toISOString().split('T')[0];
+                const date = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
                 const typeToCheck = hr === 14 ? 'lunch' : 'dinner';
                 const { data } = await supabase.from('meals')
                     .select('id')

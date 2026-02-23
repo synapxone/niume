@@ -290,7 +290,7 @@ export default function WorkoutDayView({ plan, profile, onComplete }: Props) {
             await supabase.from('workout_sessions').insert({
                 user_id: profile.id,
                 plan_id: plan.id,
-                session_date: new Date().toISOString().split('T')[0],
+                session_date: (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; })(),
                 day_index: new Date().getDay(),
                 exercises_completed: exercisesCompleted,
                 duration_minutes: elapsed,
@@ -306,7 +306,7 @@ export default function WorkoutDayView({ plan, profile, onComplete }: Props) {
                     await supabase.from('gamification').update({
                         points: (gam.points || 0) + pts,
                         total_workouts: (gam.total_workouts || 0) + 1,
-                        last_activity_date: new Date().toISOString().split('T')[0],
+                        last_activity_date: (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; })(),
                     }).eq('user_id', profile.id);
                 }
             }

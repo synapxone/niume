@@ -27,7 +27,8 @@ const MEAL_TYPES: { id: MealType; label: string; emoji: string; time: string }[]
 ];
 
 function today(): string {
-    return new Date().toISOString().split('T')[0];
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 function compressImage(file: File, maxSize = 512): Promise<{ base64: string; mimeType: string }> {

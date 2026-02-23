@@ -173,7 +173,7 @@ export default function ProfileView({ profile, onSignOut, onRefresh }: Props) {
         const weight = progWeight ? parseFloat(progWeight) : null;
         const { error } = await supabase.from('progress_entries').insert({
             user_id: profile.id,
-            date: new Date().toISOString().split('T')[0],
+            date: (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; })(),
             weight,
             photo_url: photoUrl || null,
             notes: progNotes.trim() || null,
