@@ -251,12 +251,14 @@ src/
 - Ganho de pontos ao concluir (150 pts completo / 75 pts parcial)
 
 ### Nutrição
-- Registro por foto: botões separados **Câmera** (`capture="environment"`) e **Galeria** (sem capture)
+- Registro por foto:
+  - **Câmera** (`capture="environment"`) → abre câmera nativa; IA detecta **cada item do prato individualmente** (`analyzeFoodPhotoItems`); tela de revisão permite remover itens antes de salvar todos de uma vez
+  - **Galeria** (sem capture) → fluxo existente de item único
 - Registro por texto com busca inteligente + sugestão de unidades de medida
 - Gemini Vision identifica alimento e estima macros automaticamente
 - Edição e exclusão de itens registrados
 - Anel de progresso calórico diário + barras de macros
-- Rastreador de água (copos) sincronizado com Supabase (`daily_nutrition.water_cups`)
+- Rastreador de água premium: sem scroll horizontal, copos em grade flex-wrap, exibe litros consumidos / meta / falta, barra de progresso
 - Navegação entre dias: setas `<` / `>` e calendário mensal
   - Ponto roxo nos dias com refeições registradas
   - Atalho "Ir para Hoje"
@@ -329,7 +331,7 @@ npx tsc --noEmit  # type check
 
 ## Histórico / Changelog Diário (Comunicação entre Agentes)
 
-**Status e Versão Atual:** v1.1.1
+**Status e Versão Atual:** v1.1.2
 
 ### Últimas Atualizações e Correções (Fev/2026):
 - **Design Dashboard Stats:** Os cartões na `Dashboard.tsx` receberam uma reformulação completa para exibir pequenos gráficos SVG/Backgrounds renderizados atrás dos números.
@@ -350,3 +352,5 @@ npx tsc --noEmit  # type check
 - **Timezone Bug (Fix Crítico):** Corrigido bug onde `new Date().toISOString().split('T')[0]` retornava a data UTC — no Brasil (UTC-3), após as 21h local o app mostrava a dieta/treino do dia seguinte (vazios). Todos os arquivos (`NutritionLog.tsx`, `WorkoutDay.tsx`, `ProfileView.tsx`, `App.tsx`) passaram a usar `getFullYear()/getMonth()/getDate()` para data local.
 - **CI/CD (deploy.yml):** Adicionado `VITE_RAPIDAPI_KEY` nas variáveis de ambiente do GitHub Actions para que a ExerciseDB funcione em produção (GitHub Pages).
 - **Navegação de Datas (Dieta):** `NutritionLog.tsx` ganhou seletor de data com setas prev/next e calendário mensal. `loadData(date)` agora aceita parâmetro; `saveMeal`, `updateDailyNutrition` e water handler usam `selectedDate`. Calendário destaca dias com refeições via `fetchMealDates()`.
+- **Câmera Multi-Item (Dieta):** Botão "Câmera" agora usa `capture="environment"` (abre câmera nativa em mobile). IA analisa todos os alimentos do prato individualmente (`geminiService.analyzeFoodPhotoItems`). Tela de revisão exibe cada item com macros; usuário pode remover itens antes de salvar todos de uma vez. Galeria mantém fluxo de item único.
+- **Rastreador de Água (Premium):** Removido scroll horizontal. Copos em `flex-wrap`. Exibe litros consumidos vs. meta (L) e quanto falta. Barra de progresso animada. Layout de cartão vertical com header/stats/grid.
