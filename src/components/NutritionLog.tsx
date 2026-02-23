@@ -137,9 +137,12 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
     const [waterCups, setWaterCups] = useState(0);
     const [showModal, setShowModal] = useState(false);
     const [modalMealType, setModalMealType] = useState<MealType>('breakfast');
-    const [modalMode, setModalMode] = useState<'choose' | 'photo' | 'manual' | 'photoItems'>('choose');
+    const [modalMode, setModalMode] = useState<'choose' | 'photo' | 'manual' | 'photoItems' | 'camera'>('choose');
     const [photoItems, setPhotoItems] = useState<FoodAnalysis[]>([]);
     const [analyzeLoading, setAnalyzeLoading] = useState(false);
+    const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
+    const videoRef = useRef<HTMLVideoElement>(null);
+    const canvasRef = useRef<HTMLCanvasElement>(null);
 
     // Form state
     const [formDesc, setFormDesc] = useState('');
@@ -385,6 +388,57 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
         } finally {
             setAnalyzeLoading(false);
         }
+    }
+
+    // Attach stream to video element whenever camera mode activates
+    useEffect(() => {
+        if (modalMode === 'camera' && cameraStream && videoRef.current) {
+            videoRef.current.srcObject = cameraStream;
+            videoRef.current.play().catch(() => {/* autoplay may be blocked */});
+        }
+    }, [modalMode, cameraStream]);
+
+    // Stop camera stream when modal closes
+    useEffect(() => {
+        if (!showModal && cameraStream) {
+            cameraStream.getTracks().forEach(t => t.stop());
+            setCameraStream(null);
+        }
+    }, [showModal]);
+
+    function stopCamera() {
+        if (cameraStream) {
+            cameraStream.getTracks().forEach(t => t.stop());
+            setCameraStream(null);
+        }
+    }
+
+    async function openInAppCamera() {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
+            });
+            setCameraStream(stream);
+            setModalMode('camera');
+        } catch (e) {
+            console.error('Camera access error', e);
+            toast.error('Câmera não disponível. Use a Galeria ou Manual.');
+        }
+    }
+
+    function captureFromCamera() {
+        if (!videoRef.current || !canvasRef.current || !cameraStream) return;
+        const video = videoRef.current;
+        const canvas = canvasRef.current;
+        canvas.width = video.videoWidth || 640;
+        canvas.height = video.videoHeight || 480;
+        canvas.getContext('2d')!.drawImage(video, 0, 0);
+        stopCamera();
+        canvas.toBlob((blob) => {
+            if (!blob) { setModalMode('choose'); return; }
+            const file = new File([blob], 'camera.jpg', { type: 'image/jpeg' });
+            handleCameraPhoto(file);
+        }, 'image/jpeg', 0.85);
     }
 
     async function saveAllPhotoItems(items: FoodAnalysis[]) {
@@ -828,7 +882,7 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
                         exit={{ opacity: 0 }}
                         className="fixed inset-0 z-50 flex items-start justify-center"
                         style={{ backgroundColor: 'rgba(26,26,46,0.95)' }}
-                        onClick={(e) => { if (e.target === e.currentTarget) setShowModal(false); }}
+                        onClick={(e) => { if (e.target === e.currentTarget) { stopCamera(); setShowModal(false); } }}
                     >
                         <motion.div
                             initial={{ y: '100%', opacity: 0 }}
@@ -842,15 +896,17 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
                                 <h3 className="text-white font-bold">
                                     Adicionar a {MEAL_TYPES.find((m) => m.id === modalMealType)?.label}
                                 </h3>
-                                <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-white">
+                                <button onClick={() => { stopCamera(); setShowModal(false); }} className="text-gray-400 hover:text-white">
                                     <X size={20} />
                                 </button>
                             </div>
 
                             {modalMode === 'choose' && (
                                 <div className="flex flex-col gap-3">
-                                    <label
-                                        className="flex items-center gap-4 px-4 py-4 rounded-xl text-left cursor-pointer"
+                                    <button
+                                        type="button"
+                                        onClick={openInAppCamera}
+                                        className="flex items-center gap-4 px-4 py-4 rounded-xl text-left w-full"
                                         style={{ backgroundColor: 'rgba(124,58,237,0.1)', border: '1px solid rgba(124,58,237,0.3)' }}
                                     >
                                         <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: 'rgba(124,58,237,0.2)' }}>
@@ -860,20 +916,7 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
                                             <p className="text-white font-semibold text-sm">Câmera</p>
                                             <p className="text-gray-400 text-xs">Tire uma foto — IA detecta cada item do prato</p>
                                         </div>
-                                        <input
-                                            type="file"
-                                            accept="image/*"
-                                            capture="environment"
-                                            className="hidden"
-                                            onChange={(e) => {
-                                                const f = e.target.files?.[0];
-                                                if (f) {
-                                                    setTimeout(() => handleCameraPhoto(f), 500);
-                                                }
-                                                e.target.value = '';
-                                            }}
-                                        />
-                                    </label>
+                                    </button>
                                     <label
                                         className="flex items-center gap-4 px-4 py-4 rounded-xl text-left cursor-pointer"
                                         style={{ backgroundColor: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.3)' }}
@@ -976,6 +1019,45 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
                                         >
                                             {saving ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
                                             {saving ? 'Salvando...' : `Salvar ${photoItems.length} ${photoItems.length === 1 ? 'item' : 'itens'}`}
+                                        </motion.button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {modalMode === 'camera' && (
+                                <div className="flex flex-col gap-4">
+                                    {/* Live camera preview */}
+                                    <div className="relative w-full rounded-2xl overflow-hidden bg-black" style={{ aspectRatio: '4/3' }}>
+                                        <video
+                                            ref={videoRef}
+                                            autoPlay
+                                            playsInline
+                                            muted
+                                            className="w-full h-full object-cover"
+                                        />
+                                        {/* Overlay corners for frame effect */}
+                                        <div className="absolute inset-0 pointer-events-none" style={{ border: '2px solid rgba(124,58,237,0.4)', borderRadius: '16px' }} />
+                                    </div>
+                                    <canvas ref={canvasRef} className="hidden" />
+                                    <p className="text-center text-gray-500 text-xs">Enquadre o prato e pressione Capturar</p>
+                                    <div className="flex gap-3">
+                                        <button
+                                            type="button"
+                                            onClick={() => { stopCamera(); setModalMode('choose'); }}
+                                            className="flex-1 py-3 rounded-xl text-sm font-semibold text-gray-400"
+                                            style={{ backgroundColor: 'rgba(255,255,255,0.06)' }}
+                                        >
+                                            Cancelar
+                                        </button>
+                                        <motion.button
+                                            whileTap={{ scale: 0.95 }}
+                                            type="button"
+                                            onClick={captureFromCamera}
+                                            className="flex-[2] py-4 rounded-xl font-bold text-white flex items-center justify-center gap-2"
+                                            style={{ background: 'linear-gradient(135deg, #7C3AED, #6d28d9)' }}
+                                        >
+                                            <Camera size={18} />
+                                            Capturar
                                         </motion.button>
                                     </div>
                                 </div>
