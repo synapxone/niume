@@ -789,30 +789,39 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
                 </div>
 
                 <div className="flex flex-wrap gap-2.5 justify-between">
-                    {Array.from({ length: 12 }).map((_, i) => {
+                    {Array.from({ length: Math.max(12, goalCups, waterCups) }).map((_, i) => {
                         const isSelected = i < waterCups;
                         const isNext = i === waterCups;
                         return (
                             <button
                                 key={i}
                                 onClick={() => handleCupClick(i)}
-                                className={`relative w-11 h-11 rounded-xl flex items-center justify-center transition-all duration-300 ${isSelected
-                                    ? 'bg-blue-500/20 border-blue-500/40 text-blue-400 scale-100 shadow-[0_5px_15px_rgba(59,130,246,0.2)]'
+                                className={`relative w-11 h-11 rounded-xl flex items-center justify-center transition-all duration-300 overflow-hidden ${isSelected
+                                    ? 'border-blue-500/40 text-blue-400 shadow-[0_5px_15px_rgba(59,130,246,0.2)]'
                                     : isNext
                                         ? 'bg-white/5 border-white/10 text-gray-600 hover:border-blue-500/30'
                                         : 'bg-white/[0.02] border-white/5 text-gray-800'
                                     } border`}
                             >
+                                {/* Animated Liquid Fill */}
+                                <motion.div
+                                    className="absolute bottom-0 left-0 right-0 bg-blue-500/20"
+                                    initial={{ height: '0%' }}
+                                    animate={{ height: isSelected ? '100%' : '0%' }}
+                                    transition={{ duration: 0.5, ease: "easeInOut" }}
+                                />
+
                                 <GlassWater
                                     size={18}
                                     fill={isSelected ? "currentColor" : "none"}
-                                    className={isSelected ? "animate-bounce-subtle" : ""}
+                                    className="relative z-10"
                                 />
                                 {isSelected && (
                                     <motion.div
                                         initial={{ scale: 0 }}
                                         animate={{ scale: 1 }}
-                                        className="absolute -top-1 -right-1 w-3 h-3 bg-blue-400 rounded-full border-2 border-[#12121A]"
+                                        transition={{ delay: 0.3 }}
+                                        className="absolute -top-1 -right-1 w-3 h-3 bg-blue-400 rounded-full border-2 border-[#12121A] z-20"
                                     />
                                 )}
                             </button>
