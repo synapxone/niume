@@ -1,6 +1,6 @@
-# Personall 💪
+# niume 💪
 
-Aplicativo de fitness pessoal com IA — treinos, nutrição, gamificação e acompanhamento de evolução.
+Aplicativo de fitness pessoal com IA — treinos, nutrição, gamificação e acompanhamento de evolução. (Antigo Personall)
 
 ---
 
@@ -313,7 +313,7 @@ npm run app:bundle:ota # Gerar .zip para atualização em tempo real
 
 ## Publicação Mobile & OTA Ninja
 
-O Personall utiliza **Capacitor** para rodar nativamente em iOS e Android. Para manter o custo R$ 0,00 e permitir atualizações em tempo real, implementamos o **OTA Ninja Mode**:
+O niume utiliza **Capacitor** para rodar nativamente em iOS e Android. Para manter o custo R$ 0,00 e permitir atualizações em tempo real, implementamos o **OTA Ninja Mode**:
 
 ### Como atualizar o App sem as Lojas (OTA):
 1. **Gere o Bundle**: `npm run app:bundle:ota`.
@@ -324,7 +324,7 @@ O Personall utiliza **Capacitor** para rodar nativamente em iOS e Android. Para 
 **Configuração Técnica:**
 - Lógica manual implementada no `App.tsx` usando `@capgo/capacitor-updater`.
 - `autoUpdate: false` no `capacitor.config.ts` para controle total via código.
-- URL do Manifesto: `https://synapx.cloud/personall/manifest.json`.
+- URL do Manifesto: `https://synapx.cloud/niume/manifest.json`.
 
 ---
 

@@ -33,7 +33,7 @@ export default function App() {
         try {
             // URL onde você hospedará seu manifest.json e o .zip da atualização
             // Exemplo: https://sua-conta-supabase.supabase.co/storage/v1/object/public/updates/manifest.json
-            const MANIFEST_URL = 'https://synapx.cloud/personall/manifest.json';
+            const MANIFEST_URL = 'https://synapx.cloud/niume/manifest.json';
 
             const response = await fetch(MANIFEST_URL);
             const manifest = await response.json();
@@ -144,7 +144,7 @@ export default function App() {
                         : 'Já são 20h30! Lembre-se de registrar o jantar de hoje.';
 
                     if ('Notification' in window && Notification.permission === 'granted') {
-                        new Notification('Personall', { body: msg });
+                        new Notification('niume', { body: msg });
                     } else {
                         toast(msg, { icon: '🔔', duration: 10000 });
                     }

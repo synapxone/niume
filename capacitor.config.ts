@@ -1,8 +1,8 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.personall.app',
-  appName: 'Personall',
+  appId: 'com.niume.app',
+  appName: 'niume',
   webDir: 'dist',
   plugins: {
     CapacitorUpdater: {

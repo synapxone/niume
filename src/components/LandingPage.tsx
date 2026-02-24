@@ -89,7 +89,7 @@ export default function LandingPage({ onAuthSuccess }: Props) {
             <header className="flex items-center justify-between px-6 py-4">
                 <div className="flex items-center gap-2">
                     <span className="text-2xl">💪</span>
-                    <span className="text-xl font-bold text-white">Personall</span>
+                    <span className="text-xl font-bold text-white">niume</span>
                 </div>
                 <button
                     onClick={() => { setIsLogin(true); setShowAuth(true); }}
@@ -188,7 +188,7 @@ export default function LandingPage({ onAuthSuccess }: Props) {
 
             {/* Footer */}
             <footer className="text-center text-gray-600 text-xs pb-8">
-                <p>Personall &copy; {new Date().getFullYear()} — Personal Trainer com IA</p>
+                <p>niume &copy; {new Date().getFullYear()} — Personal Trainer com IA</p>
             </footer>
 
             {/* Auth Modal */}

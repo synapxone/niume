@@ -119,7 +119,7 @@ export default function Dashboard({ profile, workoutPlan, gamification, onSignOu
                     <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-primary/10 border border-primary/20">
                         <Activity size={18} className="text-primary" />
                     </div>
-                    <span className="text-text-main font-semibold tracking-wide text-sm">PERSONALL</span>
+                    <span className="text-text-main font-semibold tracking-wide text-sm">niume</span>
                 </div>
                 <div className="flex items-center gap-2">
                     <span className="text-text-muted text-xs font-medium">{profile.name.split(' ')[0]}</span>

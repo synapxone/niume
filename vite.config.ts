@@ -3,21 +3,21 @@ import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig({
-  base: '/personall/',
+  base: '/niume/',
   plugins: [
     react(),
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['icons/*.png', 'icons/*.svg'],
       manifest: {
-        name: 'Personall — Personal Trainer com IA',
-        short_name: 'Personall',
+        name: 'niume — Personal Trainer com IA',
+        short_name: 'niume',
         description: 'Seu personal trainer com inteligência artificial.',
         theme_color: '#7C3AED',
         background_color: '#0F0F1A',
         display: 'standalone',
         orientation: 'portrait',
-        start_url: '/personall/',
+        start_url: '/niume/',
         icons: [
           { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
           { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },

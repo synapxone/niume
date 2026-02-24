@@ -246,7 +246,7 @@ export default function OnboardingWizard({ onComplete }: Props) {
                                     💪
                                 </motion.div>
                                 <div>
-                                    <h1 className="text-3xl font-extrabold text-text-main mb-2">Bem-vindo ao Personall</h1>
+                                    <h1 className="text-3xl font-extrabold text-text-main mb-2">Bem-vindo ao niume</h1>
                                     <p className="text-text-muted text-base">Vamos criar seu plano personalizado!</p>
                                 </div>
                                 <p className="text-text-muted/80 text-sm max-w-xs">

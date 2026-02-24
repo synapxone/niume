@@ -18,7 +18,7 @@ export const notificationService = {
         const ms = target.getTime() - now.getTime();
         if (ms < 24 * 60 * 60 * 1000) {
             setTimeout(() => {
-                new Notification('Personall 💪', {
+                new Notification('niume 💪', {
                     body: 'Hora do seu treino! Você consegue!',
                     icon: '/icons/icon-192.png',
                 });

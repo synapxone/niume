@@ -396,7 +396,7 @@ REGRAS:
     },
 
     async getAssistantResponse(userMessage: string, context: string): Promise<string> {
-        const prompt = `Você é o assistente personal trainer do app Personall. Seu nome é "Pers".
+        const prompt = `Você é o assistente personal trainer do app niume. Seu nome é "Pers".
 Você é motivador, direto e especialista em fitness e nutrição.
 Sempre responda em português do Brasil de forma amigável e profissional.
 
