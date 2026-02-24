@@ -4,7 +4,7 @@ import { Send, X, Loader2, Trash2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { getLocalYYYYMMDD } from '../lib/dateUtils';
 import Mascot from './Mascot';
-import { geminiService } from '../services/geminiService';
+import { aiService } from '../services/aiService';
 import type { Profile, Message } from '../types';
 
 interface NutritionData {
@@ -278,7 +278,7 @@ export default function AIAssistant({ profile, nutritionData }: Props) {
         });
 
         try {
-            const response = await geminiService.getAssistantResponse(text, context);
+            const response = await aiService.getAssistantResponse(text, context);
             const assistantMsg: Message = {
                 id: (Date.now() + 1).toString(),
                 role: 'assistant',

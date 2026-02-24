@@ -4,7 +4,7 @@ import { ChevronDown, ChevronUp, Check, Timer, Trophy, Play, Pause, Save, Copy, 
 import { supabase } from '../lib/supabase';
 import { exerciseMediaService } from '../services/exerciseMediaService';
 import type { MediaResult } from '../services/exerciseMediaService';
-import { geminiService } from '../services/geminiService';
+import { aiService } from '../services/aiService';
 import { getLocalYYYYMMDD } from '../lib/dateUtils';
 import { POINTS } from '../types';
 import type { WorkoutPlan, Profile, Exercise } from '../types';
@@ -455,7 +455,7 @@ export default function WorkoutDayView({ plan, profile, onComplete }: Props) {
                 }
             });
 
-            const newDay = await geminiService.generateWorkoutSingleDay(profile, dayName, regenMin, regenLoc, weekExercises);
+            const newDay = await aiService.generateWorkoutSingleDay(profile, dayName, regenMin, regenLoc, weekExercises);
             if (newDay) {
                 const updatedPlan = { ...localPlan };
                 if (!updatedPlan.plan_data.weeks) return;
@@ -484,7 +484,7 @@ export default function WorkoutDayView({ plan, profile, onComplete }: Props) {
             const activeStrings = activeDaysMap.filter((_, i) => weekDaysActive[i]);
 
             const newProfileData = { ...profile, training_location: regenWeekLoc as any, available_minutes: regenWeekMin, active_days: activeStrings };
-            const newPlanJson = await geminiService.generateWorkoutPlan(newProfileData);
+            const newPlanJson = await aiService.generateWorkoutPlan(newProfileData);
 
             if (newPlanJson && newPlanJson.weeks) {
                 await supabase.from('workout_plans').update({ plan_data: newPlanJson }).eq('id', plan.id).throwOnError();

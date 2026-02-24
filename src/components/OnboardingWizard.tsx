@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, Camera, SkipForward, Check, Loader2, LogOut } from 'lucide-react';
-import { geminiService } from '../services/geminiService';
+import { aiService } from '../services/aiService';
 import { supabase } from '../lib/supabase';
 import type { OnboardingData, Gender, ActivityLevel, Goal, TrainingLocation } from '../types';
 
@@ -144,12 +144,12 @@ export default function OnboardingWizard({ onComplete }: Props) {
         setGeneratingPhase(1);
 
         // Phase 1: Generate workout plan
-        const plan = await geminiService.generateWorkoutPlan(fullData);
+        const plan = await aiService.generateWorkoutPlan(fullData);
         setGeneratedPlan(plan);
         setGeneratingPhase(2);
 
         // Phase 2: Generate diet plan
-        const diet = await geminiService.generateDietPlan(fullData);
+        const diet = await aiService.generateDietPlan(fullData);
         setGeneratedDiet(diet);
 
         // Phase 3: Analyze body photo if provided
@@ -163,7 +163,7 @@ export default function OnboardingWizard({ onComplete }: Props) {
                 };
                 reader.readAsDataURL(data.photo_file!);
             });
-            const analysis = await geminiService.analyzeBodyPhoto(base64, data.photo_file.type);
+            const analysis = await aiService.analyzeBodyPhoto(base64, data.photo_file.type);
             updateData({ body_analysis: analysis });
         }
 
@@ -184,7 +184,7 @@ export default function OnboardingWizard({ onComplete }: Props) {
 
     // Calorie goal for done screen
     const calorieGoal = data.weight && data.height && data.age && data.goal
-        ? geminiService.calculateCalorieGoal(data as OnboardingData)
+        ? aiService.calculateCalorieGoal(data as OnboardingData)
         : 0;
 
     return (

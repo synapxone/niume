@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { LogOut, Pencil, Plus, X, Camera, Loader2, TrendingDown, TrendingUp, Minus, Sparkles, Moon, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { supabase } from '../lib/supabase';
-import { geminiService } from '../services/geminiService';
+import { aiService } from '../services/aiService';
 import { calculateEvolutionXP } from '../lib/xpHelpers';
 import type { Profile, ProgressEntry, Goal, ActivityLevel } from '../types';
 
@@ -125,7 +125,7 @@ export default function ProfileView({ profile, onSignOut, onRefresh }: Props) {
     async function saveProfile() {
         if (!editName.trim()) { toast.error('Nome é obrigatório.'); return; }
         setEditSaving(true);
-        const newCalGoal = geminiService.calculateCalorieGoal({
+        const newCalGoal = aiService.calculateCalorieGoal({
             name: editName,
             age: editAge,
             gender: profile.gender,
@@ -208,7 +208,7 @@ export default function ProfileView({ profile, onSignOut, onRefresh }: Props) {
         } else {
             // Update profile weight + recalculate calorie goal if weight changed
             if (weight && weight !== profile.weight) {
-                const newCalGoal = geminiService.calculateCalorieGoal({
+                const newCalGoal = aiService.calculateCalorieGoal({
                     name: profile.name,
                     age: profile.age,
                     gender: profile.gender,

@@ -9,7 +9,7 @@ import type { Profile, OnboardingData, WorkoutPlan, Gamification } from './types
 import LandingPage from './components/LandingPage';
 import OnboardingWizard from './components/OnboardingWizard';
 import Dashboard from './components/Dashboard';
-import { geminiService } from './services/geminiService';
+import { aiService } from './services/aiService';
 
 type AppView = 'landing' | 'onboarding' | 'dashboard';
 
@@ -158,7 +158,7 @@ export default function App() {
         if (!session) return;
         setLoading(true);
         const userId = session.user.id;
-        const dailyCalorieGoal = geminiService.calculateCalorieGoal(data);
+        const dailyCalorieGoal = aiService.calculateCalorieGoal(data);
 
         // 1. Upload body photo if provided
         let photoUrl: string | undefined;

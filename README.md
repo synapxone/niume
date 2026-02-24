@@ -356,9 +356,17 @@ O niume utiliza **Capacitor** para rodar nativamente em iOS e Android. Para mant
 
 ## Histórico / Changelog Diário (Comunicação entre Agentes)
 
-**Status e Versão Atual:** v1.1.4
+**Status e Versão Atual:** v1.2.0
 
 ### Últimas Atualizações e Correções (Fev/2026):
+- **Visualizador Corporal 3D Real (v1.2.0):** 
+  - Upgrade total do motor de visualização de silhuetas SVG para **Three.js**.
+  - Suporte nativo para modelos humanos reais em formato `.glb` (`public/assets/`).
+  - Lógica de morfismo baseada em métricas de composição corporal (IMC, muscularidade).
+  - Alternador 2D/3D dinâmico na aba de Evolução.
+- **Robustez da IA (Gemini):**
+  - Implementada detecção de erro HTTP 429 (Cota Excedida).
+  - O assistente "Pers" agora informa o usuário de forma amigável quando os limites da API são atingidos, oferecendo feedback claro em vez de falhas genéricas.
 - **Design Dashboard Stats:** Os cartões na `Dashboard.tsx` receberam uma reformulação completa para exibir pequenos gráficos SVG/Backgrounds renderizados atrás dos números.
 - **Design Sessão de Treinos:** Reformulação pesada no `WorkoutDay.tsx`:
   - O modal de "Descanso" agora possui um layout flutuante com *backdrop-blur* (*glassmorphism*).

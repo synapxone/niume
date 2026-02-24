@@ -4,7 +4,7 @@ import { Plus, Camera, PenLine, X, Loader2, Sparkles, Pencil, Trash2, Images, Ch
 import toast from 'react-hot-toast';
 import { supabase } from '../lib/supabase';
 import { getLocalYYYYMMDD } from '../lib/dateUtils';
-import { geminiService } from '../services/geminiService';
+import { aiService } from '../services/aiService';
 import type { Profile, Meal, MealType, FoodAnalysis } from '../types';
 
 interface Props {
@@ -257,7 +257,7 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
         setAnalyzeLoading(true);
         setAnalyzed(false);
         try {
-            const result = await geminiService.analyzeFoodText(fullDesc);
+            const result = await aiService.analyzeFoodText(fullDesc);
             setFormCal(result.calories);
             setFormProt(result.protein);
             setFormCarbs(result.carbs);
@@ -274,7 +274,7 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
         if (query.trim().length < 2) { setSuggestions([]); setShowSuggestions(false); return; }
         setSuggestLoading(true);
         try {
-            const list = await geminiService.suggestFoods(query.trim());
+            const list = await aiService.suggestFoods(query.trim());
             setSuggestions(list);
             setShowSuggestions(list.length > 0);
         } catch {
@@ -305,7 +305,7 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
     async function loadUnitsAndAnalyze(food: string, qty: number, unit: string) {
         setUnitsLoading(true);
         try {
-            const units = await geminiService.suggestUnits(food);
+            const units = await aiService.suggestUnits(food);
             setUnitOptions(units);
             const firstUnit = unit || units[0] || '';
             setFormUnit(firstUnit);
@@ -346,7 +346,7 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
         setAnalyzeLoading(true);
         try {
             const { base64, mimeType } = await compressImage(file);
-            const result = await geminiService.analyzeFoodPhoto(base64, mimeType);
+            const result = await aiService.analyzeFoodPhoto(base64, mimeType);
             setFormDesc(result.description);
             setFormCal(result.calories);
             setFormProt(result.protein);
@@ -368,7 +368,7 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
         setAnalyzeLoading(true);
         try {
             const { base64, mimeType } = await compressImage(file);
-            const items = await geminiService.analyzeFoodPhotoItems(base64, mimeType);
+            const items = await aiService.analyzeFoodPhotoItems(base64, mimeType);
             if (items.length === 1) {
                 setFormDesc(items[0].description);
                 setFormCal(items[0].calories);
@@ -544,7 +544,7 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
         if (!analyzed && formCal === 0) {
             const toastId = toast.loading(`Calculando nutrientes do alimento...`);
             try {
-                const result = await geminiService.analyzeFoodText(fullDescription);
+                const result = await aiService.analyzeFoodText(fullDescription);
                 const { error: updateErr } = await supabase.from('meals').update({
                     calories: result.calories,
                     protein: result.protein,
