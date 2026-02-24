@@ -243,10 +243,10 @@ export default function OnboardingWizard({ onComplete }: Props) {
                                     animate={{ scale: 1, opacity: 1 }}
                                     className="mb-4"
                                 >
-                                    <img src="/assets/brand/icon.png" alt="icon" className="w-24 h-24 object-contain mx-auto" />
+                                    <img src="/niume/assets/brand/icon.png" alt="icon" className="w-24 h-24 object-contain mx-auto" />
                                 </motion.div>
                                 <div className="mb-6">
-                                    <img src="/assets/brand/logo.png" alt="niume logo" className="h-10 w-auto mx-auto mb-4" />
+                                    <img src="/niume/assets/brand/logo.png" alt="niume logo" className="h-10 w-auto mx-auto mb-4" />
                                     <p className="text-text-muted text-base">Seu Personal Trainer com IA</p>
                                 </div>
                                 <p className="text-text-muted/80 text-sm max-w-xs">

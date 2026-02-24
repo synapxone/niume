@@ -51,8 +51,8 @@ const Mascot: React.FC<MascotProps> = ({ pose = 'neutral', size = 150, className
 
     return (
         <motion.div
-            className={`relative flex items-center justify-center ${className}`}
-            style={{ width: size, height: 'auto' }}
+            className={`relative flex items-center justify-center overflow-hidden ${className}`}
+            style={{ width: size, height: size }}
             animate={pose}
         >
             <svg

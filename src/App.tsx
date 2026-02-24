@@ -223,16 +223,22 @@ export default function App() {
     }
 
     if (loading) return (
-        <div className="min-h-screen bg-dark flex items-center justify-center" style={{ backgroundColor: '#0F0F1A' }}>
+        <div className="min-h-screen bg-bg-main flex items-center justify-center">
             <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
                 className="w-12 h-12 border-4 border-t-transparent rounded-full"
-                style={{ borderColor: '#7C3AED', borderTopColor: 'transparent' }} />
+                style={{ borderColor: 'var(--primary)', borderTopColor: 'transparent' }} />
         </div>
     );
 
     return (
-        <div className="min-h-screen" style={{ backgroundColor: '#0F0F1A' }}>
-            <Toaster position="top-center" toastOptions={{ style: { background: '#1A1A2E', color: '#fff', border: '1px solid rgba(124,58,237,0.3)' } }} />
+        <div className="min-h-screen bg-bg-main">
+            <Toaster position="top-center" toastOptions={{
+                style: {
+                    background: 'var(--bg-card)',
+                    color: 'var(--text-main)',
+                    border: '1px solid var(--border-main)'
+                }
+            }} />
             <AnimatePresence mode="wait">
                 {view === 'landing' && (
                     <motion.div key="landing" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>

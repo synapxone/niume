@@ -419,11 +419,11 @@ export default function AIAssistant({ profile, nutritionData }: Props) {
                         exit={{ scale: 0, opacity: 0 }}
                         whileHover={{ scale: 1.1 }}
                         onClick={handleOpen}
-                        className="fixed bottom-20 right-4 z-40 w-16 h-16 rounded-full flex items-center justify-center overflow-hidden border-2 border-primary/40 shadow-xl bg-[#FAFAF8] dark:bg-[#1A1A2E]"
+                        className="fixed bottom-20 right-4 z-40 w-16 h-16 rounded-full flex items-center justify-center overflow-hidden border-2 border-primary/40 shadow-xl bg-bg-card cursor-pointer"
                     >
-                        <div className="relative w-full h-full flex items-center justify-center p-2">
+                        <div className="w-full h-full flex items-center justify-center overflow-hidden rounded-full">
                             <Mascot
-                                size={120}
+                                size={90}
                                 bust={true}
                                 pose={loading ? 'thinking' : showBubble ? 'happy' : 'neutral'}
                             />
@@ -454,10 +454,9 @@ export default function AIAssistant({ profile, nutritionData }: Props) {
                         >
                             <div className="flex items-center gap-3">
                                 <div
-                                    className="w-10 h-10 rounded-full flex items-center justify-center text-xl"
-                                    style={{ background: 'linear-gradient(135deg, var(--primary), var(--primary-hover))' }}
+                                    className="w-10 h-10 rounded-full flex items-center justify-center overflow-hidden border border-primary/20 bg-bg-main"
                                 >
-                                    💪
+                                    <Mascot size={55} bust={true} pose="neutral" />
                                 </div>
                                 <div>
                                     <p className="text-text-main font-bold text-sm">Pers</p>
@@ -495,10 +494,9 @@ export default function AIAssistant({ profile, nutritionData }: Props) {
                                 >
                                     {msg.role === 'assistant' && (
                                         <div
-                                            className="w-7 h-7 rounded-full flex items-center justify-center text-sm flex-shrink-0 mr-2 mt-0.5"
-                                            style={{ background: 'linear-gradient(135deg, var(--primary), var(--primary-hover))' }}
+                                            className="w-7 h-7 rounded-full flex items-center justify-center overflow-hidden border border-primary/20 bg-bg-main flex-shrink-0 mr-2 mt-0.5"
                                         >
-                                            💪
+                                            <Mascot size={40} bust={true} pose="neutral" />
                                         </div>
                                     )}
                                     <div
@@ -522,10 +520,9 @@ export default function AIAssistant({ profile, nutritionData }: Props) {
                             {loading && (
                                 <div className="flex justify-start">
                                     <div
-                                        className="w-7 h-7 rounded-full flex items-center justify-center text-sm flex-shrink-0 mr-2"
-                                        style={{ background: 'linear-gradient(135deg, var(--primary), var(--primary-hover))' }}
+                                        className="w-7 h-7 rounded-full flex items-center justify-center overflow-hidden border border-primary/20 bg-bg-main flex-shrink-0 mr-2"
                                     >
-                                        💪
+                                        <Mascot size={40} bust={true} pose="thinking" />
                                     </div>
                                     <div
                                         className="px-4 py-3 rounded-2xl flex items-center gap-2 border"
