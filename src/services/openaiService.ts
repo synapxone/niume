@@ -110,13 +110,17 @@ export const openaiService = {
     },
 
     async analyzeFoodPhoto(base64: string, mimeType: string): Promise<FoodAnalysis> {
-        const prompt = `Analise a comida. Retorne APENAS JSON: { "description": "...", "calories": 0, "protein": 0, "carbs": 0, "fat": 0 }`;
+        const prompt = `Analise esta foto de comida. Identifique o prato e estime os valores nutricionais (calorias, proteína, carboidrato, gordura). 
+Retorne APENAS JSON: { "description": "nome do prato", "calories": número, "protein": número, "carbs": número, "fat": número }
+Seja realista nas estimativas e não use zeros se houver comida.`;
         const text = await callOpenAIVision(base64, mimeType, prompt);
         return JSON.parse(text);
     },
 
     async analyzeFoodPhotoItems(base64: string, mimeType: string): Promise<FoodAnalysis[]> {
-        const prompt = `Identifique TODOS os itens e macros. Retorne APENAS um objeto JSON com uma chave "items" contendo o array: { "items": [{ "description": "...", "calories": 0, "protein": 0, "carbs": 0, "fat": 0 }] }`;
+        const prompt = `Identifique TODOS os alimentos e acompanhamentos visíveis. Estime os macros de cada um. 
+Retorne APENAS um objeto JSON com uma chave "items" contendo o array: { "items": [{ "description": "nome curto", "calories": número, "protein": número, "carbs": número, "fat": número }] }
+Os valores nutricionais DEVEM ser estimativas realistas (> 0 se houver comida).`;
         const text = await callOpenAIVision(base64, mimeType, prompt);
         const parsed = JSON.parse(text);
         return parsed.items || [];
@@ -141,7 +145,7 @@ export const openaiService = {
     },
 
     async analyzeFoodText(description: string): Promise<FoodAnalysis> {
-        const prompt = `Estime macros para ${description}. JSON: { "description": "...", "calories": 0, "protein": 0, "carbs": 0, "fat": 0 }`;
+        const prompt = `Estime nutrientes para "${description}". Retorne APENAS JSON: { "description": "...", "calories": número, "protein": número, "carbs": número, "fat": número }. Seja realista.`;
         const text = await callOpenAI(prompt, true);
         return JSON.parse(text);
     },

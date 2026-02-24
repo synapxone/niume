@@ -356,9 +356,14 @@ O niume utiliza **Capacitor** para rodar nativamente em iOS e Android. Para mant
 
 ## Histórico / Changelog Diário (Comunicação entre Agentes)
 
-**Status e Versão Atual:** v1.2.3
+**Status e Versão Atual:** v1.2.5
 
 ### Últimas Atualizações e Correções (Fev/2026):
+- **Correção da Análise Nutricional (v1.2.5):**
+  - Resolvido o problema onde os nutrientes (calorias, macros) retornavam como **zero** após a análise de fotos de comida.
+  - Otimização dos *prompts* de IA (Gemini e OpenAI) para forçar estimativas realistas fundamentadas em tabelas nutricionais.
+  - Implementado sistema de tratamento e *casting* numérico no `parseSafeJSON` para garantir que valores retornados como strings (ex: "120 kcal") sejam convertidos corretamente para inteiros antes de salvar no banco.
+  - Adicionadas regras de validação para garantir valores maiores que zero em pratos com alimento visível.
 - **Aprimoramento Visual e Correção de Mascot (v1.2.3):**
   - Corrigido erro de path SVG `undefined` no mascote durante o estado de espera.
   - Melhorado o algoritmo de deformação do Visualizador 3D: agora ele representa de forma muito mais expressiva variações de gordura (barriga/volume), músculos e quadril (foco feminino).

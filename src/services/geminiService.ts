@@ -282,62 +282,69 @@ Retorne APENAS um array JSON válido. Sem texto extra, sem markdown.`;
     },
 
     async analyzeFoodText(description: string): Promise<FoodAnalysis> {
-        const prompt = `Você é um nutricionista. Estime os valores nutricionais do alimento/refeição descrito abaixo.
+        const prompt = `Você é um nutricionista especialista. Estime os valores nutricionais (calorias, proteínas, carboidratos e gorduras) para o alimento ou refeição descrito abaixo.
 
 ALIMENTO: "${description}"
 
-Retorne APENAS JSON válido (sem texto extra):
+Retorne APENAS um objeto JSON no seguinte formato:
 {
   "description": "${description}",
-  "calories": 0,
-  "protein": 0,
-  "carbs": 0,
-  "fat": 0
+  "calories": (valor em kcal),
+  "protein": (valor em gramas),
+  "carbs": (valor em gramas),
+  "fat": (valor em gramas)
 }
 
-Considere uma porção padrão/média. Seja realista e conservador nas estimativas. Retorne apenas números inteiros.`;
+REGRAS:
+- Considere uma porção padrão/média de restaurante ou residencial.
+- Seja realista e nunca retorne zero se for um alimento calórico.
+- Use apenas números inteiros para os valores nutricionais.
+- Retorne APENAS o JSON, sem texto explicativo.`;
 
         const text = await generateWithFallback(prompt);
         return parseSafeJSON(text);
     },
 
     async analyzeFoodPhoto(base64: string, mimeType = 'image/jpeg'): Promise<FoodAnalysis> {
-        const prompt = `Identifique o alimento nesta foto e estime seus valores nutricionais para uma porção típica.
+        const prompt = `Analise esta foto de comida e identifique o prato principal ou alimento. Estime os valores nutricionais (calorias e macros) para uma porção típica visível.
 
-Retorne APENAS JSON válido:
+Retorne APENAS um objeto JSON válido:
 {
-  "description": "Nome simples do alimento (ex: Barra de chocolate Snickers, Arroz com frango, Banana)",
-  "calories": 0,
-  "protein": 0,
-  "carbs": 0,
-  "fat": 0
+  "description": "Nome simples do alimento em português",
+  "calories": (valor estimado em kcal),
+  "protein": (valor estimado em g),
+  "carbs": (valor estimado em g),
+  "fat": (valor estimado em g)
 }
 
-IMPORTANTE: "description" deve ser APENAS o nome do alimento, sem descrever embalagem, cores ou apresentação visual. Seja conservador nas estimativas. Números inteiros.`;
+REGRAS:
+- "description" deve ser apenas o nome curto do alimento (ex: Arroz com Feijão e Bife).
+- Use estimativas realistas fundamentadas em tabelas nutricionais (TACO/USDA).
+- Se houver comida na imagem, os valores nutricionais DEVEM SER maiores que zero.
+- Retorne apenas números inteiros nos campos numéricos.`;
 
         const text = await analyzeImageWithGemini(base64, mimeType, prompt);
         return parseSafeJSON(text);
     },
 
     async analyzeFoodPhotoItems(base64: string, mimeType = 'image/jpeg'): Promise<FoodAnalysis[]> {
-        const prompt = `Identifique TODOS os alimentos e itens visíveis nesta foto e estime os valores nutricionais de cada um separadamente.
+        const prompt = `Identifique TODOS os alimentos e itens individuais visíveis nesta foto. Para CADA item, estime os valores nutricionais separadamente.
 
-Retorne APENAS um array JSON válido:
+Retorne APENAS um array JSON:
 [
-  { "description": "Nome do item 1", "calories": 0, "protein": 0, "carbs": 0, "fat": 0 },
-  { "description": "Nome do item 2", "calories": 0, "protein": 0, "carbs": 0, "fat": 0 }
+  { "description": "Arroz", "calories": 130, "protein": 2, "carbs": 28, "fat": 0 },
+  { "description": "Feijão", "calories": 76, "protein": 5, "carbs": 14, "fat": 1 }
 ]
 
 REGRAS:
-- Liste CADA alimento individualmente (ex: arroz, feijão, frango, salada, suco)
-- "description" deve ser apenas o nome curto do alimento em português
-- Se houver apenas 1 item, retorne array com 1 elemento
-- Inclua bebidas e acompanhamentos visíveis
-- Seja conservador e realista. Apenas números inteiros.`;
+- Liste cada componente individualmente em português.
+- Inclua guarnições, saladas e bebidas se visíveis.
+- Os valores nutricionais DEVEM ser estimativas realistas e não zeros (exceto se o alimento realmente não tiver aquele macro).
+- Retorne apenas o JSON, sem markdown ou explicações.`;
 
         const text = await analyzeImageWithGemini(base64, mimeType, prompt);
         const parsed = parseSafeJSON(text);
-        return Array.isArray(parsed) ? parsed : [parsed];
+        return Array.isArray(parsed) ? (parsed as FoodAnalysis[]) : [parsed as FoodAnalysis];
     },
 
     async getAssistantResponse(userMessage: string, context: string): Promise<string> {
@@ -367,8 +374,9 @@ function parseSafeJSON(text: string): any {
         const start = (firstBrace !== -1 && (firstBracket === -1 || firstBrace < firstBracket)) ? firstBrace : firstBracket;
         const jsonStr = cleaned.slice(start);
 
+        let parsed: any = null;
         try {
-            return JSON.parse(jsonStr);
+            parsed = JSON.parse(jsonStr);
         } catch {
             // Repair truncated JSON: track strings and open brackets/braces
             const stack: ('{' | '[')[] = [];
@@ -387,21 +395,55 @@ function parseSafeJSON(text: string): any {
             }
 
             let repaired = jsonStr;
-            // Close unterminated string first, then remove trailing comma if any
             if (inString) repaired += '"';
             repaired = repaired.replace(/,\s*$/, '');
-            // Close open structures
             while (stack.length > 0) {
                 const last = stack.pop();
                 repaired += (last === '{' ? '}' : ']');
             }
+
             try {
-                return JSON.parse(repaired);
+                parsed = JSON.parse(repaired);
             } catch (innerError) {
-                console.warn('JSON repair failed:', innerError);
-                return null;
+                // If it still fails, try to just find the last valid object boundary
+                try {
+                    const lastBraceIdx = jsonStr.lastIndexOf('}');
+                    const lastBracketIdx = jsonStr.lastIndexOf(']');
+                    const boundary = Math.max(lastBraceIdx, lastBracketIdx);
+                    if (boundary > 0) {
+                        parsed = JSON.parse(jsonStr.substring(0, boundary + 1));
+                    }
+                } catch {
+                    console.warn('JSON repair failed:', innerError);
+                    return null;
+                }
             }
         }
+
+        // Post-processing to ensure numeric values for calories/macros
+        const ensureNumbers = (obj: any): any => {
+            if (!obj || typeof obj !== 'object') return obj;
+            if (Array.isArray(obj)) return obj.map(ensureNumbers);
+
+            const numericFields = ['calories', 'protein', 'carbs', 'fat'];
+            numericFields.forEach(field => {
+                if (field in obj) {
+                    const val = obj[field];
+                    if (typeof val === 'string') {
+                        // Extract leading numbers (handles "120kcal", "120 kcal", "120g")
+                        const match = val.match(/^[\d.]+/);
+                        obj[field] = match ? Math.round(parseFloat(match[0])) : 0;
+                    } else if (typeof val !== 'number') {
+                        obj[field] = 0;
+                    } else {
+                        obj[field] = Math.round(val);
+                    }
+                }
+            });
+            return obj;
+        };
+
+        return ensureNumbers(parsed);
     } catch (e) {
         console.warn('parseSafeJSON critical failure', e);
         return null;
