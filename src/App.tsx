@@ -83,7 +83,16 @@ export default function App() {
                 supabase.from('workout_sessions').select('id', { count: 'exact', head: true }).eq('user_id', userId),
             ]);
             if (profileRes.data) {
-                setProfile(profileRes.data as Profile);
+                const p = profileRes.data as Profile;
+                setProfile(p);
+
+                // Sync theme from profile
+                if (p.theme) {
+                    localStorage.setItem('app-theme', p.theme);
+                    if (p.theme === 'light') document.documentElement.classList.add('light');
+                    else document.documentElement.classList.remove('light');
+                }
+
                 setWorkoutPlan(planRes.data as WorkoutPlan | null);
 
                 let gamData = gamRes.data as Gamification | null;
@@ -114,7 +123,7 @@ export default function App() {
         }
 
         // Load user theme preference
-        const savedTheme = localStorage.getItem('app-theme') || 'dark';
+        const savedTheme = localStorage.getItem('app-theme') || 'light';
         if (savedTheme === 'light') {
             document.documentElement.classList.add('light');
         } else {
@@ -189,6 +198,7 @@ export default function App() {
             foods_at_home: data.foods_at_home,
             photo_url: photoUrl,
             body_analysis: data.body_analysis,
+            theme: 'light',
             daily_calorie_goal: dailyCalorieGoal,
         });
 

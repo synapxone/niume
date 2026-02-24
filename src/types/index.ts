@@ -21,6 +21,7 @@ export type Profile = {
   available_minutes: number;
   photo_url?: string;
   body_analysis?: string;
+  theme?: 'light' | 'dark';
   food_preferences: string[];
   foods_at_home: string[];
   daily_calorie_goal: number;

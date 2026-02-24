@@ -359,7 +359,16 @@ O niume utiliza **Capacitor** para rodar nativamente em iOS e Android. Para mant
 **Status e Versão Atual:** v1.2.8
 
 ### Últimas Atualizações e Correções (Fev/2026):
-### Versão 1.2.8
+### v1.2.9
+- Modo Claro definido como padrão do sistema.
+- Persistência de tema (Claro/Escuro) sincronizada com o perfil do usuário no Supabase.
+- Melhoria na inicialização do app para evitar "flash" de tema escuro.
+
+### v1.2.8
+- Otimização de busca local: Resultados do banco de dados (TACO) agora priorizados na busca manual.
+- Correção de animação do Mascote: Propriedades de variantes unificadas para evitar erros de renderização.
+- Estabilidade da API Gemini: Implementação de retentativas e tratamento de erros aprimorado.
+- Melhoria no log nutricional: Seleção de porções e unidades agora mais intuitiva via IA.
 - **Busca Otimizada**: Desativado o auto-complete por IA para priorizar 100% o banco de dados local (TACO), economizando recursos e aumentando a velocidade.
 - **Correção Visual (Mascote)**: Corrigido o erro de renderização SVG (`attribute d: undefined`) nas animações do Pers.
 - **Estabilidade de IA**: Atualizado o endpoint e a lista de modelos do Google Gemini para evitar erros 404 e garantir fallback robusto.

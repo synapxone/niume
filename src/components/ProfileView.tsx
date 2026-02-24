@@ -61,15 +61,24 @@ export default function ProfileView({ profile, onSignOut, onRefresh }: Props) {
     // Theme state
     const [isLightMode, setIsLightMode] = useState(() => document.documentElement.classList.contains('light'));
 
-    function toggleTheme() {
+    async function toggleTheme() {
         const nextLight = !isLightMode;
         setIsLightMode(nextLight);
+        const themeValue = nextLight ? 'light' : 'dark';
+
         if (nextLight) {
             document.documentElement.classList.add('light');
-            localStorage.setItem('app-theme', 'light');
         } else {
             document.documentElement.classList.remove('light');
-            localStorage.setItem('app-theme', 'dark');
+        }
+
+        localStorage.setItem('app-theme', themeValue);
+
+        // Persist to database
+        try {
+            await supabase.from('profiles').update({ theme: themeValue }).eq('id', profile.id);
+        } catch (e) {
+            console.error('Failed to save theme to profile', e);
         }
     }
 
