@@ -17,7 +17,10 @@ async function callGemini(model: string, prompt: string, timeoutMs = 60000, maxO
             }),
             signal: controller.signal,
         });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        if (!res.ok) {
+            if (res.status === 429) throw new Error('QUOTA_EXCEEDED');
+            throw new Error(`HTTP ${res.status}`);
+        }
         const data = await res.json();
         return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
     } finally {
@@ -38,7 +41,10 @@ async function callGeminiVision(model: string, base64Data: string, mimeType: str
             }),
             signal: controller.signal,
         });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        if (!res.ok) {
+            if (res.status === 429) throw new Error('QUOTA_EXCEEDED');
+            throw new Error(`HTTP ${res.status}`);
+        }
         const data = await res.json();
         return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
     } finally {
@@ -55,7 +61,7 @@ async function generateWithFallback(prompt: string, maxOutputTokens = 8192): Pro
             console.warn(`Model ${modelName} failed, trying next...`, e);
         }
     }
-    throw new Error('All Gemini models failed');
+    throw new Error('SERVICE_UNAVAILABLE');
 }
 
 async function analyzeImageWithGemini(base64Data: string, mimeType: string, prompt: string): Promise<string> {

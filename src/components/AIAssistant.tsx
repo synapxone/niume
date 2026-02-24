@@ -291,13 +291,19 @@ export default function AIAssistant({ profile, nutritionData }: Props) {
                 role: 'assistant',
                 content: response,
             });
-        } catch {
-            setMessages((prev) => [...prev, {
+        } catch (e: any) {
+            const isQuota = e.message === 'QUOTA_EXCEEDED';
+            const errorMsg = isQuota
+                ? 'Puxa, atingi meu limite de mensagens gratuitas por agora. 😅 Tente novamente em alguns minutos ou mais tarde!'
+                : 'Desculpe, tive um problema ao processar sua mensagem. Tente novamente em instantes.';
+
+            const assistantMsg: Message = {
                 id: (Date.now() + 1).toString(),
                 role: 'assistant',
-                content: 'Desculpe, tive um problema ao processar sua mensagem. Tente novamente em instantes.',
+                content: errorMsg,
                 created_at: new Date().toISOString(),
-            }]);
+            };
+            setMessages((prev) => [...prev, assistantMsg]);
         } finally {
             setLoading(false);
         }

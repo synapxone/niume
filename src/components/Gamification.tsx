@@ -7,6 +7,9 @@ import { getLocalYYYYMMDD } from '../lib/dateUtils';
 import { calculateEvolutionXP } from '../lib/xpHelpers';
 import { REWARDS_CATALOG, xpForLevel } from '../types';
 import type { Gamification as GamificationType, Profile, Reward } from '../types';
+import { BodyVisualizer } from './BodyVisualizer';
+import { ThreeBodyVisualizer } from './ThreeBodyVisualizer';
+import { estimateBodyMetrics } from '../lib/bodyComposition';
 
 interface Props {
     gamification: GamificationType | null;
@@ -58,6 +61,11 @@ export default function GamificationView({ gamification, profile, onUpdate }: Pr
     const [evoWeight, setEvoWeight] = useState(profile.weight || 70);
     const [evoSaving, setEvoSaving] = useState(false);
 
+    // Timeline States
+    const [timelineView, setTimelineView] = useState<'past' | 'present' | 'future'>('present');
+    const [pastWeight, setPastWeight] = useState<number | null>(null);
+    const [visualMode, setVisualMode] = useState<'svg' | '3d'>('3d');
+
     useEffect(() => {
         if (profile) {
             fetchHistory();
@@ -66,15 +74,27 @@ export default function GamificationView({ gamification, profile, onUpdate }: Pr
 
     async function fetchHistory() {
         // Fetch last 7 days of daily nutrition
-        const { data, error } = await supabase
-            .from('daily_nutrition')
-            .select('date, total_calories, goal_calories')
-            .eq('user_id', profile.id)
-            .order('date', { ascending: false })
-            .limit(7);
+        const [nutriRes, progRes] = await Promise.all([
+            supabase
+                .from('daily_nutrition')
+                .select('date, total_calories, goal_calories')
+                .eq('user_id', profile.id)
+                .order('date', { ascending: false })
+                .limit(7),
+            supabase
+                .from('progress_entries')
+                .select('weight')
+                .eq('user_id', profile.id)
+                .order('date', { ascending: true })
+                .limit(1)
+                .maybeSingle()
+        ]);
 
-        if (!error && data) {
-            setHistory(data.reverse()); // oldest to newest
+        if (!nutriRes.error && nutriRes.data) {
+            setHistory(nutriRes.data.reverse()); // oldest to newest
+        }
+        if (progRes.data) {
+            setPastWeight(progRes.data.weight);
         }
     }
 
@@ -247,6 +267,94 @@ export default function GamificationView({ gamification, profile, onUpdate }: Pr
                         Registre refeições para ver o gráfico.
                     </div>
                 )}
+            </div>
+
+            {/* Evolution Timeline Visualizer */}
+            <div className="rounded-[24px] p-6 bg-card border shadow-xl flex flex-col gap-6" style={{ borderColor: 'var(--border-main)' }}>
+                <div className="flex items-center justify-between">
+                    <div className="flex flex-col gap-1">
+                        <h3 className="text-sm font-bold text-text-main flex items-center gap-2">
+                            <Star size={16} className="text-primary fill-primary/20" />
+                            Linha do Tempo: Forma Física
+                        </h3>
+                        <p className="text-[10px] text-text-muted uppercase tracking-wider font-semibold">Geração em tempo real</p>
+                    </div>
+                    {/* Visual Mode Toggle */}
+                    <div className="flex p-0.5 bg-bg-main rounded-lg border border-white/5">
+                        <button
+                            onClick={() => setVisualMode('svg')}
+                            className={`px-2 py-1 text-[8px] font-bold rounded-md transition-all ${visualMode === 'svg' ? 'bg-primary text-white' : 'text-text-muted'}`}
+                        >
+                            2D
+                        </button>
+                        <button
+                            onClick={() => setVisualMode('3d')}
+                            className={`px-2 py-1 text-[8px] font-bold rounded-md transition-all ${visualMode === '3d' ? 'bg-primary text-white' : 'text-text-muted'}`}
+                        >
+                            3D
+                        </button>
+                    </div>
+                </div>
+
+                {/* Timeline Controls */}
+                <div className="flex p-1 bg-bg-main rounded-xl border border-white/5 shadow-inner">
+                    {(['past', 'present', 'future'] as const).map((view) => (
+                        <button
+                            key={view}
+                            onClick={() => setTimelineView(view)}
+                            className={`flex-1 py-2 text-[11px] font-bold rounded-lg transition-all ${timelineView === view
+                                ? 'bg-primary text-white shadow-lg'
+                                : 'text-text-muted hover:text-text-main hover:bg-white/5'
+                                }`}
+                        >
+                            {view === 'past' ? 'PASSADO' : view === 'present' ? 'AGORA' : 'FUTURO'}
+                        </button>
+                    ))}
+                </div>
+
+                <div className="relative py-4 min-h-[320px] flex items-center justify-center">
+                    {(() => {
+                        let displayWeight = profile.weight;
+                        let displayGoal = profile.goal;
+                        let label = 'Atual';
+
+                        if (timelineView === 'past' && pastWeight) {
+                            displayWeight = pastWeight;
+                            label = 'Início da Jornada';
+                        } else if (timelineView === 'future') {
+                            const months = 3;
+                            const weightChangePerMonth = profile.goal === 'lose_weight' ? -2 : profile.goal === 'gain_weight' || profile.goal === 'gain_muscle' ? 1.5 : 0;
+                            displayWeight = profile.weight + (weightChangePerMonth * months);
+                            label = `Previsão (~${months} meses)`;
+                        }
+
+                        const metrics = estimateBodyMetrics(displayWeight, profile.height, profile.gender, displayGoal);
+
+                        return (
+                            <motion.div
+                                key={`${timelineView}-${visualMode}`}
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                                className="w-full flex flex-col items-center"
+                            >
+                                {visualMode === '3d' ? (
+                                    <ThreeBodyVisualizer metrics={metrics} gender={profile.gender} />
+                                ) : (
+                                    <BodyVisualizer metrics={metrics} gender={profile.gender} />
+                                )}
+
+                                <div className="mt-4 text-center">
+                                    <div className="text-[10px] text-text-muted font-bold uppercase tracking-widest">{label}</div>
+                                    <div className="text-2xl font-black text-text-main">{displayWeight.toFixed(1)} <span className="text-sm font-normal text-text-muted">kg</span></div>
+                                    <div className="text-[11px] font-semibold flex items-center gap-1 justify-center text-primary mt-1">
+                                        IMC: {metrics.bmi} • {metrics.bmi < 18.5 ? 'Abaixo do peso' : metrics.bmi < 25 ? 'Peso ideal' : metrics.bmi < 30 ? 'Sobrepeso' : 'Obesidade'}
+                                    </div>
+                                </div>
+                            </motion.div>
+                        );
+                    })()}
+                </div>
             </div>
 
             {/* Level & XP */}
