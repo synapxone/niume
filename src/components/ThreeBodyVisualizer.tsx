@@ -10,10 +10,10 @@ interface Props {
     gender: Gender;
 }
 
-const MODEL_PATH = '/niume/assets/male__female_base_mesh_pack.glb';
+const MODEL_URL = `${import.meta.env.BASE_URL}assets/male__female_base_mesh_pack.glb`.replace(/\/+/g, '/');
 
 const BodyMesh: React.FC<Props> = ({ metrics, gender }) => {
-    const { nodes } = useGLTF(MODEL_PATH) as any;
+    const { nodes } = useGLTF(MODEL_URL) as any;
     const meshRef = useRef<THREE.Group>(null);
     const isMale = gender === 'male' || gender === 'other';
 
@@ -26,14 +26,11 @@ const BodyMesh: React.FC<Props> = ({ metrics, gender }) => {
     // X = Width, Y = Height, Z = Depth (Belly)
 
     // Width (X): 
-    // - Male: Shoulder width dominates if muscular. Waist width dominates if fat.
-    // - Female: Hips are generally wider (w scale).
     const scaleX = isMale
         ? Math.max(s * (1.1 + m * 0.1), w * 1.05)
         : w * 1.35; // Broadens hips significantly for female representation
 
     // Depth (Z - "Belly/Mass"): 
-    // - High waist scale + Low muscularity = Large Belly (Depth)
     const bellyFactor = (w > 1.15 && m < 0.5) ? (w - 1.15) * 2.0 : 0;
     const baseDepth = isMale ? 1.05 : 0.95;
     const scaleZ = (baseDepth * w) + bellyFactor;
@@ -45,12 +42,17 @@ const BodyMesh: React.FC<Props> = ({ metrics, gender }) => {
         meshRef.current.rotation.y = Math.sin(state.clock.elapsedTime * 0.4) * 0.15;
     });
 
-    const maleNodes = Object.values(nodes).filter((n: any) => n.isMesh && n.name.toLowerCase().includes('male') && !n.name.toLowerCase().includes('female'));
+    const maleNodes = Object.values(nodes).filter((n: any) => n.isMesh && (n.name.toLowerCase().includes('male') && !n.name.toLowerCase().includes('female')));
     const femaleNodes = Object.values(nodes).filter((n: any) => n.isMesh && n.name.toLowerCase().includes('female'));
 
     const activeNodes = isMale
         ? (maleNodes.length > 0 ? maleNodes : Object.values(nodes).filter((n: any) => n.isMesh).slice(0, 1))
         : (femaleNodes.length > 0 ? femaleNodes : Object.values(nodes).filter((n: any) => n.isMesh).slice(1, 2));
+
+    if (activeNodes.length === 0) {
+        console.warn('No meshes found in model for gender:', gender);
+        return null;
+    }
 
     return (
         <group ref={meshRef}>
@@ -76,7 +78,11 @@ const BodyMesh: React.FC<Props> = ({ metrics, gender }) => {
 export const ThreeBodyVisualizer: React.FC<Props> = (props) => {
     return (
         <div className="w-full h-[350px] relative rounded-3xl overflow-hidden bg-gradient-to-b from-card to-bg-main border border-white/5 shadow-2xl">
-            <Canvas shadows camera={{ position: [0, 0, 5], fov: 40 }}>
+            <Canvas
+                shadows={{ type: THREE.PCFShadowMap }}
+                camera={{ position: [0, 0, 5], fov: 40 }}
+                gl={{ antialias: true, alpha: true }}
+            >
                 <ambientLight intensity={0.5} />
                 <pointLight position={[10, 10, 10]} intensity={1} castShadow />
 
@@ -102,4 +108,4 @@ export const ThreeBodyVisualizer: React.FC<Props> = (props) => {
     );
 };
 
-useGLTF.preload(MODEL_PATH);
+useGLTF.preload(MODEL_URL);

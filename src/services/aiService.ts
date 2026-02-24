@@ -3,7 +3,20 @@ import { openaiService } from './openaiService';
 import type { OnboardingData, FoodAnalysis, Profile } from '../types';
 
 // Helper to check OpenAI dynamically
-const hasOpenAI = () => !!import.meta.env.VITE_OPENAI_API_KEY;
+const hasOpenAI = () => {
+    const hasKey = !!import.meta.env.VITE_OPENAI_API_KEY;
+    if (!hasKey && import.meta.env.PROD) {
+        console.error('AI ERROR: VITE_OPENAI_API_KEY is missing in production build. Check GitHub Secrets.');
+    }
+    return hasKey;
+};
+const hasGemini = () => {
+    const hasKey = !!import.meta.env.VITE_GEMINI_API_KEY;
+    if (!hasKey && import.meta.env.PROD) {
+        console.error('AI ERROR: VITE_GEMINI_API_KEY is missing in production build. Check GitHub Secrets.');
+    }
+    return hasKey;
+};
 
 export const aiService = {
     // Utility from GeminiService (pure logic)
@@ -11,6 +24,7 @@ export const aiService = {
 
     async generateWorkoutPlan(data: OnboardingData & { active_days?: string[] }): Promise<any> {
         try {
+            if (!hasGemini()) throw new Error('GEMINI_KEY_MISSING');
             return await geminiService.generateWorkoutPlan(data);
         } catch (e: any) {
             if (hasOpenAI()) {
