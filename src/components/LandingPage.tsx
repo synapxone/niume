@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { Mail, Lock, Eye, EyeOff, Dumbbell, Apple, Trophy, Bot, ArrowRight, X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import Mascot from './Mascot';
 
 interface Props {
     onAuthSuccess: () => void;
@@ -87,8 +88,8 @@ export default function LandingPage({ onAuthSuccess }: Props) {
         <div className="min-h-screen flex flex-col" style={{ backgroundColor: '#0F0F1A' }}>
             {/* Header */}
             <header className="flex items-center justify-between px-6 py-4">
-                <div className="flex items-center gap-2">
-                    <span className="text-2xl">💪</span>
+                <div className="flex items-center gap-3">
+                    <img src="/assets/brand/logo.png" alt="niume logo" className="h-8 w-auto" />
                     <span className="text-xl font-bold text-white">niume</span>
                 </div>
                 <button
@@ -110,13 +111,13 @@ export default function LandingPage({ onAuthSuccess }: Props) {
                     }}
                 />
 
-                {/* Floating mascot */}
                 <motion.div
-                    className="text-6xl mb-6 select-none"
-                    animate={{ y: [0, -12, 0] }}
-                    transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+                    className="mb-8 select-none"
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ delay: 0.3 }}
                 >
-                    💪
+                    <Mascot size={200} pose="happy" />
                 </motion.div>
 
                 <motion.h1
@@ -126,7 +127,7 @@ export default function LandingPage({ onAuthSuccess }: Props) {
                     className="text-4xl sm:text-5xl font-extrabold mb-4 leading-tight"
                 >
                     <span style={{
-                        background: 'linear-gradient(135deg, #7C3AED, #a78bfa, #10B981)',
+                        background: 'linear-gradient(135deg, #52B788, #2D6A4F, #10B981)',
                         WebkitBackgroundClip: 'text',
                         WebkitTextFillColor: 'transparent',
                         backgroundClip: 'text',
@@ -315,6 +316,6 @@ export default function LandingPage({ onAuthSuccess }: Props) {
                     </motion.div>
                 )}
             </AnimatePresence>
-        </div>
+        </div >
     );
 }

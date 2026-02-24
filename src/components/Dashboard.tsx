@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Home, Dumbbell, Apple, Trophy, User, Flame, Zap, Activity, BarChart3, TrendingUp, ChevronRight, CheckCircle2, BedDouble, ChevronUp } from 'lucide-react';
+import { Home, Dumbbell, Apple, Trophy, User, Flame, Zap, BarChart3, TrendingUp, ChevronRight, CheckCircle2, BedDouble, ChevronUp } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import type { Profile, WorkoutPlan, Gamification } from '../types';
 import WorkoutDayView from './WorkoutDay';
@@ -115,10 +115,8 @@ export default function Dashboard({ profile, workoutPlan, gamification, onSignOu
         <div className="min-h-screen flex flex-col font-sans bg-dark text-text-main">
             {/* Top header */}
             <header className="flex items-center justify-between px-5 pt-20 pb-8 safe-top border-b bg-dark" style={{ borderColor: 'var(--border-main)' }}>
-                <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-primary/10 border border-primary/20">
-                        <Activity size={18} className="text-primary" />
-                    </div>
+                <div className="flex items-center gap-3">
+                    <img src="/assets/brand/logo.png" alt="niume logo" className="h-7 w-auto" />
                     <span className="text-text-main font-semibold tracking-wide text-sm">niume</span>
                 </div>
                 <div className="flex items-center gap-2">

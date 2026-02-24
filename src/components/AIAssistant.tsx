@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Send, X, Loader2, Trash2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import Mascot from './Mascot';
 import { geminiService } from '../services/geminiService';
 import type { Profile, Message } from '../types';
 
@@ -417,17 +418,16 @@ export default function AIAssistant({ profile, nutritionData }: Props) {
                         animate={{ scale: 1, opacity: 1 }}
                         exit={{ scale: 0, opacity: 0 }}
                         whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
                         onClick={handleOpen}
-                        className="fixed bottom-20 right-4 z-40 w-14 h-14 rounded-full flex items-center justify-center shadow-lg text-2xl"
+                        className="fixed bottom-20 right-4 z-40 w-16 h-16 rounded-full flex items-center justify-center transition-transform"
                         style={{
-                            background: 'linear-gradient(135deg, var(--primary), var(--primary-hover))',
-                            boxShadow: showBubble
-                                ? '0 4px 20px rgba(var(--primary-rgb), 0.6), 0 0 0 3px rgba(var(--primary-rgb), 0.3)'
-                                : '0 4px 20px rgba(var(--primary-rgb), 0.4)',
+                            background: 'transparent',
                         }}
                     >
-                        💪
+                        <Mascot
+                            size={70}
+                            pose={loading ? 'thinking' : showBubble ? 'happy' : 'neutral'}
+                        />
                     </motion.button>
                 )}
             </AnimatePresence>

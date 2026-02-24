@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, Camera, SkipForward, Check, Loader2, LogOut } from 'lucide-react';
 import { geminiService } from '../services/geminiService';
 import { supabase } from '../lib/supabase';
+import Mascot from './Mascot';
 import type { OnboardingData, Gender, ActivityLevel, Goal, TrainingLocation } from '../types';
 
 interface Props {
@@ -241,9 +242,9 @@ export default function OnboardingWizard({ onComplete }: Props) {
                                 <motion.div
                                     animate={{ y: [0, -10, 0] }}
                                     transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
-                                    className="text-8xl"
+                                    className="mb-8"
                                 >
-                                    💪
+                                    <Mascot size={220} pose="happy" />
                                 </motion.div>
                                 <div>
                                     <h1 className="text-3xl font-extrabold text-text-main mb-2">Bem-vindo ao niume</h1>
