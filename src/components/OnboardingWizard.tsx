@@ -238,10 +238,9 @@ export default function OnboardingWizard({ onComplete }: Props) {
                         {/* ===== WELCOME ===== */}
                         {step === 'welcome' && (
                             <div className="flex-1 flex flex-col items-center justify-center text-center gap-6">
-                                <div className="mb-6 flex flex-col items-center gap-4">
-                                    <img src="/niume/assets/brand/icon.png" alt="icon" className="h-20 w-20 object-contain rounded-xl shadow-lg" />
-                                    <img src="/niume/assets/brand/logo.png" alt="niume logo" className="h-10 w-auto mb-2" />
-                                    <p className="text-text-muted text-base">Seu Personal Trainer com IA</p>
+                                <div className="mb-6 flex flex-col items-center gap-2">
+                                    <span className="font-['Quicksand'] font-bold text-5xl lowercase text-black dark:text-white">niume</span>
+                                    <p className="text-text-muted text-base mt-2">Seu Personal Trainer com IA</p>
                                 </div>
                                 <p className="text-text-muted/80 text-sm max-w-xs">
                                     Em poucos passos, nossa IA vai montar o treino e a dieta ideal para o seu objetivo.

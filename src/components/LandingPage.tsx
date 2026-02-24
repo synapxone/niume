@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { Mail, Lock, Eye, EyeOff, Dumbbell, Apple, Trophy, Bot, ArrowRight, X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import Mascot from './Mascot';
 
 interface Props {
     onAuthSuccess: () => void;
@@ -89,8 +88,7 @@ export default function LandingPage({ onAuthSuccess }: Props) {
             {/* Header */}
             <header className="flex items-center justify-between px-6 py-4">
                 <div className="flex items-center gap-2">
-                    <img src="/niume/assets/brand/icon.png" alt="icon" className="h-8 w-8 object-contain rounded-lg" />
-                    <img src="/niume/assets/brand/logo.png" alt="niume logo" className="h-6 w-auto object-contain" />
+                    <span className="font-['Quicksand'] font-bold text-2xl lowercase text-black dark:text-white">niume</span>
                 </div>
                 <button
                     onClick={() => { setIsLogin(true); setShowAuth(true); }}
@@ -104,18 +102,15 @@ export default function LandingPage({ onAuthSuccess }: Props) {
             <section className="flex-1 flex flex-col items-center justify-center text-center px-6 py-16 relative overflow-hidden">
                 {/* Branding Hero */}
                 <motion.div
-                    className="mb-6 select-none flex flex-col items-center gap-4"
+                    className="mb-6 select-none"
                     initial={{ scale: 0.9, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     transition={{ duration: 0.8 }}
                 >
-                    <img src="/niume/assets/brand/icon.png" alt="icon" className="h-24 w-24 object-contain drop-shadow-2xl rounded-2xl" />
-                    <img src="/niume/assets/brand/logo.png" alt="niume logo" className="h-12 w-auto drop-shadow-lg" />
+                    <span className="font-['Quicksand'] font-bold text-7xl lowercase text-black dark:text-white tracking-tight">niume</span>
                 </motion.div>
 
-                <div className="flex items-center justify-center mb-8">
-                    <Mascot size={120} pose="waiting" className="opacity-80" />
-                </div>
+                {/* Removed Mascot decoration */}
 
                 <motion.h1
                     initial={{ opacity: 0, y: 24 }}
