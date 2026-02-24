@@ -356,9 +356,13 @@ O niume utiliza **Capacitor** para rodar nativamente em iOS e Android. Para mant
 
 ## Histórico / Changelog Diário (Comunicação entre Agentes)
 
-**Status e Versão Atual:** v1.2.1
+**Status e Versão Atual:** v1.2.2
 
 ### Últimas Atualizações e Correções (Fev/2026):
+- **Refatoração do Sistema de Contingência (v1.2.2):**
+  - Corrigido "Silent Failure" no Gemini que impedia a ativação do fallback da OpenAI.
+  - Implementada propagação de erros real: agora, se o Gemini falhar internamente, o `aiService` detecta e chaveia para o GPT-4o-mini sem que o usuário perceba.
+  - Melhorado tratamento de erros e logs no `openaiService` para facilitar diagnósticos.
 - **Integração de Fallback OpenAI (v1.2.1):**
   - Implementado sistema de contingência com **GPT-4o-mini**.
   - Fallback automático resiliente: o sistema chaveia para a OpenAI em qualquer erro do Gemini (403, 404, 429).

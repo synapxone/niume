@@ -2,8 +2,8 @@ import { geminiService } from './geminiService';
 import { openaiService } from './openaiService';
 import type { OnboardingData, FoodAnalysis, Profile } from '../types';
 
-// Check if OpenAI is configured
-const hasOpenAI = !!import.meta.env.VITE_OPENAI_API_KEY;
+// Helper to check OpenAI dynamically
+const hasOpenAI = () => !!import.meta.env.VITE_OPENAI_API_KEY;
 
 export const aiService = {
     // Utility from GeminiService (pure logic)
@@ -13,7 +13,7 @@ export const aiService = {
         try {
             return await geminiService.generateWorkoutPlan(data);
         } catch (e: any) {
-            if (hasOpenAI) {
+            if (hasOpenAI()) {
                 console.warn('Gemini failed, falling back to OpenAI...', e);
                 return await openaiService.generateWorkoutPlan(data);
             }
@@ -25,7 +25,7 @@ export const aiService = {
         try {
             return await geminiService.generateWorkoutSingleDay(profile, dayName, availableMinutes, location, avoidExercises);
         } catch (e: any) {
-            if (hasOpenAI) {
+            if (hasOpenAI()) {
                 console.warn('Gemini failed, falling back to OpenAI...', e);
                 return await openaiService.generateWorkoutSingleDay(profile, dayName, availableMinutes, location, avoidExercises);
             }
@@ -37,7 +37,7 @@ export const aiService = {
         try {
             return await geminiService.generateDietPlan(data);
         } catch (e: any) {
-            if (hasOpenAI) {
+            if (hasOpenAI()) {
                 console.warn('Gemini failed, falling back to OpenAI...', e);
                 return await openaiService.generateDietPlan(data);
             }
@@ -49,7 +49,7 @@ export const aiService = {
         try {
             return await geminiService.analyzeBodyPhoto(base64, mimeType);
         } catch (e: any) {
-            if (hasOpenAI) {
+            if (hasOpenAI()) {
                 console.warn('Gemini failed, falling back to OpenAI...', e);
                 return await openaiService.analyzeBodyPhoto(base64, mimeType);
             }
@@ -61,7 +61,7 @@ export const aiService = {
         try {
             return await geminiService.suggestUnits(food);
         } catch (e: any) {
-            if (hasOpenAI) {
+            if (hasOpenAI()) {
                 console.warn('Gemini failed, falling back to OpenAI...', e);
                 return await openaiService.suggestUnits(food);
             }
@@ -73,7 +73,7 @@ export const aiService = {
         try {
             return await geminiService.suggestFoods(query);
         } catch (e: any) {
-            if (hasOpenAI) {
+            if (hasOpenAI()) {
                 console.warn('Gemini failed, falling back to OpenAI...', e);
                 return await openaiService.suggestFoods(query);
             }
@@ -85,7 +85,7 @@ export const aiService = {
         try {
             return await geminiService.analyzeFoodText(description);
         } catch (e: any) {
-            if (hasOpenAI) {
+            if (hasOpenAI()) {
                 console.warn('Gemini failed, falling back to OpenAI...', e);
                 return await openaiService.analyzeFoodText(description);
             }
@@ -97,7 +97,7 @@ export const aiService = {
         try {
             return await geminiService.analyzeFoodPhoto(base64, mimeType);
         } catch (e: any) {
-            if (hasOpenAI) {
+            if (hasOpenAI()) {
                 console.warn('Gemini failed, falling back to OpenAI...', e);
                 return await openaiService.analyzeFoodPhoto(base64, mimeType);
             }
@@ -109,7 +109,7 @@ export const aiService = {
         try {
             return await geminiService.analyzeFoodPhotoItems(base64, mimeType);
         } catch (e: any) {
-            if (hasOpenAI) {
+            if (hasOpenAI()) {
                 console.warn('Gemini failed, trying OpenAI for multi-item analysis...', e);
                 return await openaiService.analyzeFoodPhotoItems(base64, mimeType);
             }
@@ -121,7 +121,7 @@ export const aiService = {
         try {
             return await geminiService.getAssistantResponse(userMessage, context);
         } catch (e: any) {
-            if (hasOpenAI) {
+            if (hasOpenAI()) {
                 console.warn('Gemini failed, falling back to OpenAI...', e);
                 return await openaiService.getAssistantResponse(userMessage, context);
             }

@@ -28,8 +28,9 @@ async function callOpenAI(prompt: string, json = true, timeoutMs = 60000, maxTok
         });
 
         if (!res.ok) {
-            if (res.status === 429) throw new Error('QUOTA_EXCEEDED');
             const err = await res.json().catch(() => ({}));
+            console.error('OpenAI Error Details:', err);
+            if (res.status === 429) throw new Error('QUOTA_EXCEEDED');
             throw new Error(err.error?.message || `HTTP ${res.status}`);
         }
 
@@ -76,8 +77,9 @@ async function callOpenAIVision(base64Data: string, mimeType: string, prompt: st
         });
 
         if (!res.ok) {
-            if (res.status === 429) throw new Error('QUOTA_EXCEEDED');
             const err = await res.json().catch(() => ({}));
+            console.error('OpenAI Vision Error Details:', err);
+            if (res.status === 429) throw new Error('QUOTA_EXCEEDED');
             throw new Error(err.error?.message || `HTTP ${res.status}`);
         }
 
@@ -89,91 +91,64 @@ async function callOpenAIVision(base64Data: string, mimeType: string, prompt: st
 }
 
 export const openaiService = {
-    async generateWorkoutPlan(data: OnboardingData & { active_days?: string[] }): Promise<any> {
-        const prompt = `Crie um plano de treino JSON (4 semanas). Perfil: Objetivo ${data.goal}, Local ${data.training_location}, Tempo ${data.available_minutes}min.
-        Retorne no formato JSON: { "name": "...", "weeks": [...] }`;
-        const text = await callOpenAI(prompt);
+    async generateWorkoutPlan(data: OnboardingData): Promise<any> {
+        const prompt = `Crie um plano de treino JSON para: ${JSON.stringify(data)}. JSON format: { "name": "...", "weeks": [] }`;
+        const text = await callOpenAI(prompt, true);
         return JSON.parse(text);
     },
 
     async generateWorkoutSingleDay(profile: Partial<Profile>, dayName: string, availableMinutes: number, location: string, avoidExercises: string[] = []): Promise<any> {
-        const prompt = `Gere um treino JSON para o dia ${dayName}. Perfil: ${profile.goal}, ${location}, ${availableMinutes}min. 
-        Evite: ${avoidExercises.join(', ')}. Format: { "day": 1, "name": "...", "type": "strength", "exercises": [...] }`;
-        const text = await callOpenAI(prompt);
+        const prompt = `Crie um treino JSON para o dia ${dayName}, ${availableMinutes}min em ${location}. Perfil: ${JSON.stringify(profile)}. Evite: ${avoidExercises.join(',')}. JSON format: { "day": 1, "name": "...", "exercises": [] }`;
+        const text = await callOpenAI(prompt, true);
         return JSON.parse(text);
     },
 
     async generateDietPlan(data: OnboardingData): Promise<any> {
-        const prompt = `Gere um plano alimentar JSON. Perfil: ${data.goal}, Peso ${data.weight}kg.
-        Format: { "daily_calories": 2000, "macros": {...}, "meals": [...] }`;
-        const text = await callOpenAI(prompt);
+        const prompt = `Crie um plano de dieta JSON para: ${JSON.stringify(data)}. JSON format: { "daily_calories": 2000, "meals": [] }`;
+        const text = await callOpenAI(prompt, true);
         return JSON.parse(text);
     },
 
-    async analyzeBodyPhoto(base64: string, mimeType = 'image/jpeg'): Promise<string> {
-        const prompt = `Analise esta foto corporal. Retorne um JSON: { "analysis": "texto da análise em português brasileiro" }`;
-        const text = await callOpenAIVision(base64, mimeType, prompt);
-        const parsed = JSON.parse(text);
-        return parsed.analysis;
-    },
-
-    async suggestUnits(food: string): Promise<string[]> {
-        const prompt = `Sugira unidades de medida para "${food}". JSON format: { "units": ["unidade", "gramas"] }`;
-        const text = await callOpenAI(prompt);
-        const parsed = JSON.parse(text);
-        return parsed.units || [];
-    },
-
-    async suggestFoods(query: string): Promise<string[]> {
-        const prompt = `Sugira variações de "${query}". JSON format: { "foods": ["var1", "var2"] }`;
-        const text = await callOpenAI(prompt);
-        const parsed = JSON.parse(text);
-        return parsed.foods || [];
-    },
-
-    async analyzeFoodText(description: string): Promise<FoodAnalysis> {
-        const prompt = `Analise nutricionalmente: "${description}". JSON format: { "description": "...", "calories": 0, "protein": 0, "carbs": 0, "fat": 0 }`;
-        const text = await callOpenAI(prompt);
-        return JSON.parse(text);
-    },
-
-    async analyzeFoodPhoto(base64: string, mimeType = 'image/jpeg'): Promise<FoodAnalysis> {
-        const prompt = `Identifique o alimento e macros. JSON format: { "description": "...", "calories": 0, "protein": 0, "carbs": 0, "fat": 0 }`;
+    async analyzeFoodPhoto(base64: string, mimeType: string): Promise<FoodAnalysis> {
+        const prompt = `Analise a comida. Retorne APENAS JSON: { "description": "...", "calories": 0, "protein": 0, "carbs": 0, "fat": 0 }`;
         const text = await callOpenAIVision(base64, mimeType, prompt);
         return JSON.parse(text);
     },
 
-    async analyzeFoodPhotoItems(base64: string, mimeType = 'image/jpeg'): Promise<FoodAnalysis[]> {
-        const prompt = `Identifique TODOS os itens e macros. JSON format: { "items": [{ "description": "...", "calories": 0, "protein": 0, "carbs": 0, "fat": 0 }] }`;
+    async analyzeFoodPhotoItems(base64: string, mimeType: string): Promise<FoodAnalysis[]> {
+        const prompt = `Identifique TODOS os itens e macros. Retorne APENAS um objeto JSON com uma chave "items" contendo o array: { "items": [{ "description": "...", "calories": 0, "protein": 0, "carbs": 0, "fat": 0 }] }`;
         const text = await callOpenAIVision(base64, mimeType, prompt);
         const parsed = JSON.parse(text);
         return parsed.items || [];
     },
 
+    async analyzeBodyPhoto(base64: string, mimeType: string): Promise<string> {
+        const prompt = `Descreva o físico nesta foto de forma profissional e motivadora (parágrafo curto). Retorne JSON: { "analysis": "..." }`;
+        const text = await callOpenAIVision(base64, mimeType, prompt);
+        return JSON.parse(text).analysis;
+    },
+
+    async suggestUnits(food: string): Promise<string[]> {
+        const prompt = `Unidades de medida para ${food}. JSON: { "units": ["unidade", "gramas"] }`;
+        const text = await callOpenAI(prompt, true);
+        return JSON.parse(text).units;
+    },
+
+    async suggestFoods(query: string): Promise<string[]> {
+        const prompt = `Variações de ${query}. JSON: { "foods": ["Item 1", "Item 2"] }`;
+        const text = await callOpenAI(prompt, true);
+        return JSON.parse(text).foods;
+    },
+
+    async analyzeFoodText(description: string): Promise<FoodAnalysis> {
+        const prompt = `Estime macros para ${description}. JSON: { "description": "...", "calories": 0, "protein": 0, "carbs": 0, "fat": 0 }`;
+        const text = await callOpenAI(prompt, true);
+        return JSON.parse(text);
+    },
+
     async getAssistantResponse(userMessage: string, context: string): Promise<string> {
-        const controller = new AbortController();
-        const id = setTimeout(() => controller.abort(), 60000);
-        try {
-            const res = await fetch(BASE_URL, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${API_KEY}`
-                },
-                body: JSON.stringify({
-                    model: MODEL,
-                    messages: [
-                        { role: 'system', content: 'Você é o assistente "Pers". Responda em português brasileiro de forma motivadora e curta.' },
-                        { role: 'user', content: `Contexto: ${context}\n\nMensagem: ${userMessage}` }
-                    ],
-                    temperature: 0.7,
-                }),
-                signal: controller.signal,
-            });
-            const data = await res.json();
-            return data.choices?.[0]?.message?.content || 'Desculpe, tive um problema.';
-        } finally {
-            clearTimeout(id);
-        }
+        const prompt = `Você é o Pers, personal trainer. Contexto: ${context}. Mensagem: ${userMessage}. Responda de forma curta e motivadora.`;
+        // No JSON format for general chat
+        return await callOpenAI(prompt, false);
     }
 };

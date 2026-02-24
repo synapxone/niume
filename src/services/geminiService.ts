@@ -136,30 +136,8 @@ Formato:
   ]
 }`;
 
-        try {
-            const text = await generateWithFallback(prompt, 16384);
-            return parseSafeJSON(text);
-        } catch (e) {
-            console.error('Error generating workout plan:', e);
-        }
-        // Fallback plan
-        return {
-            name: 'Plano Inicial — 4 semanas',
-            estimated_weeks: 4,
-            description: 'Plano básico para começar sua jornada fitness.',
-            weeks: [{
-                week: 1,
-                days: [
-                    {
-                        day: 1, name: 'Treino Full Body A', type: 'strength', exercises: [
-                            { exercise_id: '0009', name: 'Flexão de Braço', sets: 3, reps: '10-15', rest_seconds: 60, instructions: 'Mantenha o corpo reto.', tips: 'Respire ao descer.' },
-                            { exercise_id: '0685', name: 'Agachamento', sets: 3, reps: '15-20', rest_seconds: 60, instructions: 'Pés na largura dos ombros.', tips: 'Joelhos não passem dos pés.' },
-                        ]
-                    },
-                    { day: 2, name: 'Descanso', type: 'rest', exercises: [] },
-                ]
-            }],
-        };
+        const text = await generateWithFallback(prompt, 16384);
+        return parseSafeJSON(text);
     },
 
     async generateWorkoutSingleDay(profile: Partial<Profile>, dayName: string, availableMinutes: number, location: string, avoidExercises: string[] = []): Promise<any> {
@@ -210,13 +188,8 @@ Retorne APENAS JSON válido, neste formato exato (sem Markdown):
   ]
 }`;
 
-        try {
-            const text = await generateWithFallback(prompt);
-            return parseSafeJSON(text);
-        } catch (e) {
-            console.error('Error generating single workout day:', e);
-        }
-        return null;
+        const text = await generateWithFallback(prompt);
+        return parseSafeJSON(text);
     },
 
     async generateDietPlan(data: OnboardingData): Promise<any> {
@@ -270,13 +243,8 @@ Retorne APENAS JSON válido:
   "tips": ["Dica 1", "Dica 2", "Dica 3"]
 }`;
 
-        try {
-            const text = await generateWithFallback(prompt);
-            return parseSafeJSON(text);
-        } catch (e) {
-            console.error('Error generating diet plan:', e);
-        }
-        return { daily_calories: calories, macros: { protein: 150, carbs: 200, fat: 60 }, meals: [], tips: [] };
+        const text = await generateWithFallback(prompt);
+        return parseSafeJSON(text);
     },
 
     async analyzeBodyPhoto(base64: string, mimeType = 'image/jpeg'): Promise<string> {
@@ -287,11 +255,7 @@ Retorne APENAS JSON válido:
 4. Recomendação de foco para o treino
 Seja encorajador e construtivo. Máximo 3 parágrafos.`;
 
-        try {
-            return await analyzeImageWithGemini(base64, mimeType, prompt);
-        } catch {
-            return 'Análise corporal não disponível. Seu plano foi criado com base nas informações fornecidas.';
-        }
+        return await analyzeImageWithGemini(base64, mimeType, prompt);
     },
 
     async suggestUnits(food: string): Promise<string[]> {
@@ -305,26 +269,16 @@ Exemplos:
 - "pão francês": ["unidade", "gramas", "metade"]
 - "chocolate": ["gramas", "quadrado", "barra inteira"]
 Retorne APENAS um array JSON de strings. Sem texto extra, sem markdown.`;
-        try {
-            const text = await generateWithFallback(prompt);
-            return parseSafeJSON(text);
-        } catch (e) {
-            console.error('Error suggesting units:', e);
-        }
-        return ['unidade', 'gramas', 'porção'];
+        const text = await generateWithFallback(prompt);
+        return parseSafeJSON(text);
     },
 
     async suggestFoods(query: string): Promise<string[]> {
         const prompt = `Liste 6 a 8 variações comuns do alimento "${query}" em português brasileiro, como aparecem em apps de dieta e tabela TACO.
 Exemplo para "pão": ["Pão francês", "Pão francês sem miolo", "Pão francês com manteiga", "Pão de forma", "Pão de queijo", "Pão doce", "Pão integral", "Pão de forma integral"]
 Retorne APENAS um array JSON válido. Sem texto extra, sem markdown.`;
-        try {
-            const text = await generateWithFallback(prompt);
-            return parseSafeJSON(text);
-        } catch (e) {
-            console.error('Error suggesting foods:', e);
-        }
-        return [];
+        const text = await generateWithFallback(prompt);
+        return parseSafeJSON(text);
     },
 
     async analyzeFoodText(description: string): Promise<FoodAnalysis> {
@@ -343,13 +297,8 @@ Retorne APENAS JSON válido (sem texto extra):
 
 Considere uma porção padrão/média. Seja realista e conservador nas estimativas. Retorne apenas números inteiros.`;
 
-        try {
-            const text = await generateWithFallback(prompt);
-            return parseSafeJSON(text);
-        } catch (e) {
-            console.error('Error analyzing food text:', e);
-        }
-        return { description, calories: 0, protein: 0, carbs: 0, fat: 0 };
+        const text = await generateWithFallback(prompt);
+        return parseSafeJSON(text);
     },
 
     async analyzeFoodPhoto(base64: string, mimeType = 'image/jpeg'): Promise<FoodAnalysis> {
@@ -366,13 +315,8 @@ Retorne APENAS JSON válido:
 
 IMPORTANTE: "description" deve ser APENAS o nome do alimento, sem descrever embalagem, cores ou apresentação visual. Seja conservador nas estimativas. Números inteiros.`;
 
-        try {
-            const text = await analyzeImageWithGemini(base64, mimeType, prompt);
-            return parseSafeJSON(text);
-        } catch (e) {
-            console.error('Error analyzing food:', e);
-        }
-        return { description: 'Refeição não identificada', calories: 0, protein: 0, carbs: 0, fat: 0 };
+        const text = await analyzeImageWithGemini(base64, mimeType, prompt);
+        return parseSafeJSON(text);
     },
 
     async analyzeFoodPhotoItems(base64: string, mimeType = 'image/jpeg'): Promise<FoodAnalysis[]> {
@@ -391,14 +335,9 @@ REGRAS:
 - Inclua bebidas e acompanhamentos visíveis
 - Seja conservador e realista. Apenas números inteiros.`;
 
-        try {
-            const text = await analyzeImageWithGemini(base64, mimeType, prompt);
-            const parsed = parseSafeJSON(text);
-            return Array.isArray(parsed) ? parsed : [parsed];
-        } catch (e) {
-            console.error('Error analyzing food photo items:', e);
-        }
-        return [{ description: 'Refeição', calories: 0, protein: 0, carbs: 0, fat: 0 }];
+        const text = await analyzeImageWithGemini(base64, mimeType, prompt);
+        const parsed = parseSafeJSON(text);
+        return Array.isArray(parsed) ? parsed : [parsed];
     },
 
     async getAssistantResponse(userMessage: string, context: string): Promise<string> {
