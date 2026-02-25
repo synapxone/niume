@@ -3,8 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Home, Dumbbell, Apple, Trophy, User, Flame, Zap, BarChart3, TrendingUp, ChevronRight, CheckCircle2, BedDouble, ChevronUp } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { getLocalYYYYMMDD } from '../lib/dateUtils';
-import type { Profile, WorkoutPlan, Gamification } from '../types';
-import WorkoutDayView from './WorkoutDay';
+import type { Profile, WorkoutPlan, Gamification, WorkoutCategory } from '../types';
+import WorkoutHub from './WorkoutHub';
 import NutritionLog from './NutritionLog';
 import GamificationView from './Gamification';
 import ProfileView from './ProfileView';
@@ -13,10 +13,13 @@ import DailyRewardModal from './DailyRewardModal';
 
 interface Props {
     profile: Profile;
-    workoutPlan: WorkoutPlan | null;
+    musculacaoPlan: WorkoutPlan | null;
+    cardioPlan: WorkoutPlan | null;
+    modalidadePlan: WorkoutPlan | null;
     gamification: Gamification | null;
     onSignOut: () => void;
     onRefresh: () => void;
+    onPlanChange: (category: WorkoutCategory, plan: WorkoutPlan) => void;
 }
 
 type Tab = 'home' | 'workout' | 'nutrition' | 'gamification' | 'profile';
@@ -59,7 +62,7 @@ interface NutritionTotals {
     fat: number;
 }
 
-export default function Dashboard({ profile, workoutPlan, gamification, onSignOut, onRefresh }: Props) {
+export default function Dashboard({ profile, musculacaoPlan, cardioPlan, modalidadePlan, gamification, onSignOut, onRefresh, onPlanChange }: Props) {
     const [activeTab, setActiveTab] = useState<Tab>(() => {
         return (sessionStorage.getItem('activeTab') as Tab) || 'home';
     });
@@ -99,7 +102,7 @@ export default function Dashboard({ profile, workoutPlan, gamification, onSignOu
         }
     }, [activeTab, profile.id, nutritionTotals]);
 
-    const todayWorkout = getTodayWorkout(workoutPlan);
+    const todayWorkout = getTodayWorkout(musculacaoPlan);
 
     // Calc Dedication Score (min 32.5, max 100)
     const dedication = gamification
@@ -312,13 +315,13 @@ export default function Dashboard({ profile, workoutPlan, gamification, onSignOu
                                 )}
 
                                 {/* Plan description */}
-                                {workoutPlan?.description && (
+                                {musculacaoPlan?.description && (
                                     <div className="rounded-2xl p-4" style={{ backgroundColor: 'rgba(var(--primary-rgb), 0.08)', border: '1px solid rgba(var(--primary-rgb), 0.15)' }}>
                                         <div className="flex items-center gap-2 mb-2">
                                             <Flame size={16} className="text-primary" />
                                             <span className="text-xs font-semibold uppercase tracking-wide text-primary opacity-80">Dica do Plano</span>
                                         </div>
-                                        <p className="text-text-muted text-sm">{workoutPlan.description}</p>
+                                        <p className="text-text-muted text-sm">{musculacaoPlan.description}</p>
                                     </div>
                                 )}
                             </div>
@@ -326,20 +329,14 @@ export default function Dashboard({ profile, workoutPlan, gamification, onSignOu
 
                         {/* ===== WORKOUT TAB ===== */}
                         {activeTab === 'workout' && (
-                            workoutPlan
-                                ? <WorkoutDayView
-                                    plan={workoutPlan}
-                                    profile={profile}
-                                    onComplete={(_pts) => { onRefresh(); }}
-                                />
-                                : <div className="flex flex-col items-center justify-center py-24 px-6 text-center gap-4">
-                                    <span className="text-5xl">😕</span>
-                                    <p className="text-text-main font-bold text-lg">Nenhum plano ativo</p>
-                                    <p className="text-text-muted text-sm">Você ainda não tem um plano de treino. Complete o onboarding para gerar um.</p>
-                                    <div className="flex flex-col items-center gap-1 opacity-20 hover:opacity-100 transition-opacity">
-                                        <span className="text-[10px] font-bold tracking-widest text-white/20">NIUME v1.3.4</span>
-                                    </div>
-                                </div>
+                            <WorkoutHub
+                                musculacaoPlan={musculacaoPlan}
+                                cardioPlan={cardioPlan}
+                                modalidadePlan={modalidadePlan}
+                                profile={profile}
+                                onPlanChange={onPlanChange}
+                                onComplete={() => onRefresh()}
+                            />
                         )}
 
                         {/* ===== NUTRITION TAB ===== */}

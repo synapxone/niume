@@ -1,6 +1,6 @@
 import { supabase } from '../lib/supabase';
 import { geminiService } from './geminiService';
-import type { OnboardingData, FoodAnalysis, Profile } from '../types';
+import type { OnboardingData, FoodAnalysis, Profile, Modality, CommunityExercise } from '../types';
 
 const callAiService = async (action: string, payload: any) => {
     const { data, error } = await supabase.functions.invoke('ai-service', {
@@ -135,6 +135,76 @@ export const aiService = {
         }
     },
 
+
+    async generateWorkoutFromTemplate(
+        profile: Partial<Profile>,
+        splitType: string,
+        activeDays: string[],
+        location: string
+    ): Promise<any> {
+        return await callAiService('GENERATE_WORKOUT', {
+            ...profile,
+            training_location: location,
+            active_days: activeDays,
+            split_type: splitType,
+        });
+    },
+
+    async generateCardioPlan(
+        profile: Partial<Profile>,
+        cardioType: string,
+        activeDays: string[],
+        goalMinutes: number
+    ): Promise<any> {
+        return await callAiService('GENERATE_CARDIO_PLAN', {
+            profile,
+            cardioType,
+            activeDays,
+            goalMinutes,
+        });
+    },
+
+    async generateModalityPlan(
+        profile: Partial<Profile>,
+        modality: Modality
+    ): Promise<any> {
+        return await callAiService('GENERATE_MODALITY_PLAN', {
+            profile,
+            modality,
+        });
+    },
+
+    async generateModalityExercises(
+        modality: Pick<Modality, 'name' | 'description'>,
+        count = 6
+    ): Promise<CommunityExercise[]> {
+        try {
+            const result = await callAiService('GENERATE_MODALITY_EXERCISES', {
+                modality,
+                count,
+            });
+            return result.exercises ?? [];
+        } catch {
+            return [];
+        }
+    },
+
+    async generateExerciseInstructions(
+        exerciseName: string,
+        category: string,
+        modalityName?: string
+    ): Promise<string> {
+        try {
+            const result = await callAiService('GENERATE_EXERCISE_INSTRUCTIONS', {
+                exerciseName,
+                category,
+                modalityName,
+            });
+            return result.instructions ?? '';
+        } catch {
+            return '';
+        }
+    },
 
     async fetchFromOpenFoodFacts(barcode: string): Promise<FoodAnalysis | null> {
         try {

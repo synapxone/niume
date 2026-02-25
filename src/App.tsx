@@ -16,7 +16,9 @@ type AppView = 'landing' | 'onboarding' | 'dashboard';
 export default function App() {
     const [session, setSession] = useState<Session | null>(null);
     const [profile, setProfile] = useState<Profile | null>(null);
-    const [workoutPlan, setWorkoutPlan] = useState<WorkoutPlan | null>(null);
+    const [musculacaoPlan, setMusculacaoPlan] = useState<WorkoutPlan | null>(null);
+    const [cardioPlan, setCardioPlan] = useState<WorkoutPlan | null>(null);
+    const [modalidadePlan, setModalidadePlan] = useState<WorkoutPlan | null>(null);
     const [gamification, setGamification] = useState<Gamification | null>(null);
     const [view, setView] = useState<AppView>('landing');
     const [loading, setLoading] = useState(true);
@@ -75,9 +77,11 @@ export default function App() {
         loadingRef.current = true;
         if (!silent) setLoading(true);
         try {
-            const [profileRes, planRes, gamRes, mealCountRes, workoutCountRes] = await Promise.all([
+            const [profileRes, muscRes, cardRes, modRes, gamRes, mealCountRes, workoutCountRes] = await Promise.all([
                 supabase.from('profiles').select('*').eq('id', userId).single(),
-                supabase.from('workout_plans').select('*').eq('user_id', userId).eq('is_active', true).single(),
+                supabase.from('workout_plans').select('*').eq('user_id', userId).eq('category', 'musculacao').eq('is_active', true).maybeSingle(),
+                supabase.from('workout_plans').select('*').eq('user_id', userId).eq('category', 'cardio').eq('is_active', true).maybeSingle(),
+                supabase.from('workout_plans').select('*').eq('user_id', userId).eq('category', 'modalidade').eq('is_active', true).maybeSingle(),
                 supabase.from('gamification').select('*').eq('user_id', userId).single(),
                 supabase.from('meals').select('id', { count: 'exact', head: true }).eq('user_id', userId),
                 supabase.from('workout_sessions').select('id', { count: 'exact', head: true }).eq('user_id', userId),
@@ -93,7 +97,9 @@ export default function App() {
                     else document.documentElement.classList.remove('light');
                 }
 
-                setWorkoutPlan(planRes.data as WorkoutPlan | null);
+                setMusculacaoPlan(muscRes.data as WorkoutPlan | null);
+                setCardioPlan(cardRes.data as WorkoutPlan | null);
+                setModalidadePlan(modRes.data as WorkoutPlan | null);
 
                 let gamData = gamRes.data as Gamification | null;
                 if (gamData) {
@@ -202,7 +208,7 @@ export default function App() {
             daily_calorie_goal: dailyCalorieGoal,
         });
 
-        // 3. Save workout plan
+        // 3. Save workout plan (onboarding creates a musculação plan by default)
         await supabase.from('workout_plans').insert({
             user_id: userId,
             name: workoutPlanData.name,
@@ -210,6 +216,8 @@ export default function App() {
             estimated_weeks: workoutPlanData.estimated_weeks,
             plan_data: workoutPlanData,
             is_active: true,
+            category: 'musculacao',
+            plan_type: 'ai',
         }).select().single();
 
         // 4. Initialize gamification
@@ -264,10 +272,17 @@ export default function App() {
                     <motion.div key="dashboard" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                         <Dashboard
                             profile={profile}
-                            workoutPlan={workoutPlan}
+                            musculacaoPlan={musculacaoPlan}
+                            cardioPlan={cardioPlan}
+                            modalidadePlan={modalidadePlan}
                             gamification={gamification}
                             onSignOut={handleSignOut}
                             onRefresh={() => loadUserData(session!.user.id, true)}
+                            onPlanChange={(category, plan) => {
+                                if (category === 'musculacao') setMusculacaoPlan(plan);
+                                else if (category === 'cardio') setCardioPlan(plan);
+                                else setModalidadePlan(plan);
+                            }}
                         />
                     </motion.div>
                 )}

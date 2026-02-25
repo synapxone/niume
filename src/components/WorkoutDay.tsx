@@ -13,6 +13,8 @@ interface Props {
     plan: WorkoutPlan;
     profile: Profile;
     onComplete: (pointsEarned: number) => void;
+    /** When true, hides the top header (used inside WeeklyPlanView which provides its own header) */
+    hideHeader?: boolean;
 }
 
 const WEEK_DAYS = ['S', 'T', 'Q', 'Q', 'S', 'S', 'D'];
@@ -38,7 +40,7 @@ type ActiveSetModal = {
     countdown: number;
 };
 
-export default function WorkoutDayView({ plan, profile, onComplete }: Props) {
+export default function WorkoutDayView({ plan, profile, onComplete, hideHeader = false }: Props) {
     const [selectedDayIndex, setSelectedDayIndex] = useState<number>(() => {
         const dayOfWeek = new Date().getDay();
         return dayOfWeek === 0 ? 6 : dayOfWeek - 1;
@@ -506,7 +508,7 @@ export default function WorkoutDayView({ plan, profile, onComplete }: Props) {
     const progressPct = getProgressPct();
 
     return (
-        <div className="flex flex-col px-4 pt-10 pb-24 gap-5 max-w-lg mx-auto">
+        <div className={`flex flex-col px-4 ${hideHeader ? 'pt-2' : 'pt-10'} pb-24 gap-5 max-w-lg mx-auto`}>
             {/* Week Tab Selector */}
             <div className="flex gap-2 -mx-4 px-4">
                 {WEEK_DAYS.map((d, i) => {

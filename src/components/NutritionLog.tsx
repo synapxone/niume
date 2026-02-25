@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Camera, PenLine, X, Loader2, Sparkles, Pencil, Trash2, Images, ChevronLeft, ChevronRight, CalendarDays, GlassWater, Flame, Zap, Activity, TrendingUp, Barcode, Database } from 'lucide-react';
+import { Trash2, Plus, Camera, X, Loader2, ChevronLeft, ChevronRight, Sparkles, Activity, Database, TrendingUp, Barcode, Flame, Zap, CalendarDays, GlassWater, Pencil } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { supabase } from '../lib/supabase';
 import { getLocalYYYYMMDD } from '../lib/dateUtils';
@@ -139,11 +139,13 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
     const [showModal, setShowModal] = useState(false);
     const [modalMealType, setModalMealType] = useState<MealType>('breakfast');
     const [modalMode, setModalMode] = useState<'choose' | 'photo' | 'manual' | 'photoItems' | 'camera' | 'barcode'>('choose');
-    const [photoItems, setPhotoItems] = useState<FoodAnalysis[]>([]);
+    const [photoItems, setPhotoItems] = useState<(FoodAnalysis & { quantity?: number; unit?: string })[]>([]);
     const [analyzeLoading, setAnalyzeLoading] = useState(false);
     const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
+    const [detectedItems, setDetectedItems] = useState<string[]>([]);
 
     // Form state
     const [formDesc, setFormDesc] = useState('');
@@ -256,11 +258,37 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
         if (qtyDebounceRef.current) clearTimeout(qtyDebounceRef.current);
     }
 
-    function onAddDirectly() {
-        if (formDesc.trim().length < 2) return;
-        setFormQty(100);
-        setFormUnit('gramas');
-        loadUnitsAndAnalyze(formDesc, 100, 'gramas');
+    function checkQuantitySanity(qty: number, unit: string, desc: string): { ok: boolean; message: string } {
+        const u = unit.toLowerCase();
+        const d = desc.toLowerCase();
+        if (qty <= 0) return { ok: false, message: 'A quantidade deve ser maior que zero.' };
+
+        // Specific Item Checks (Extravagant Checks)
+        if (d.includes('ovo') && qty > 24 && !u.includes('g')) return { ok: false, message: 'Quantidade de ovos muito alta (máx. 24). Se for peso, use gramas.' };
+        if (d.includes('maçã') && qty > 10 && !u.includes('g')) return { ok: false, message: 'Quantidade de maçãs muito alta (máx. 10).' };
+        if (d.includes('banana') && qty > 10 && !u.includes('g')) return { ok: false, message: 'Quantidade de bananas muito alta (máx. 10).' };
+        if ((d.includes('biscoito') || d.includes('bolacha')) && qty > 40 && !u.includes('g')) return { ok: false, message: 'Quantidade de biscoitos excessiva (máx. 40).' };
+        if (d.includes('pizza') && qty > 12 && u.includes('fatia')) return { ok: false, message: 'Quantidade de fatias de pizza excessiva (máx. 12).' };
+        if (d.includes('pão') && qty > 10 && (u.includes('un') || u.includes('fatia'))) return { ok: false, message: 'Quantidade de pães excessiva (máx. 10).' };
+        if (d.includes('hambúrguer') && qty > 5 && !u.includes('g')) return { ok: false, message: 'Quantidade de hambúrgueres excessiva (máx. 5).' };
+
+        // Suspiciously Low Checks (The "1g rice" cases)
+        const isMainCarbOrProtein = d.match(/(arroz|feijão|frango|carne|peixe|purê|massa|macarrão)/);
+        if (isMainCarbOrProtein && (u === 'g' || u === 'gramas') && qty < 5) {
+            return { ok: false, message: `Quantidade de ${d} muito baixa (apenas ${qty}g?). Talvez você quis dizer porção ou um valor maior?` };
+        }
+
+        // Generic Category Limits
+        if ((u.includes('grama') || u === 'g') && qty > 5000) return { ok: false, message: 'Quantidade de gramas muito alta (máx. 5kg).' };
+        if ((u.includes('ml') || u === 'ml') && qty > 5000) return { ok: false, message: 'Quantidade de ml muito alta (máx. 5L).' };
+        if ((u.includes('litro')) && qty > 10) return { ok: false, message: 'Quantidade de litros muito alta (máx. 10L).' };
+        if ((u.includes('unidade') || u === 'un') && qty > 50) return { ok: false, message: 'Quantidade de unidades muito alta (máx. 50).' };
+        if ((u.includes('colher')) && qty > 30) return { ok: false, message: 'Quantidade de colheres muito alta (máx. 30).' };
+        if ((u.includes('copo')) && qty > 20) return { ok: false, message: 'Quantidade de copos muito alta (máx. 20).' };
+        if ((u.includes('porção') || u.includes('fatia')) && qty > 30) return { ok: false, message: 'Quantidade muito alta (máx. 30).' };
+        if (u === 'kg' && qty > 10) return { ok: false, message: 'Quantidade de kg muito alta (máx. 10kg).' };
+
+        return { ok: true, message: '' };
     }
 
     const getUnitFactor = useCallback((unit: string, qty: number, unitWeight: number = 100): number => {
@@ -293,21 +321,27 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
 
     const localCalculate = useCallback((food: FoodAnalysis, qty: number, unit: string) => {
         const factor = getUnitFactor(unit, qty, food.unit_weight || 100);
+        const result = {
+            calories: Math.round(food.calories * factor),
+            protein: Math.round((food.protein || 0) * factor),
+            carbs: Math.round((food.carbs || 0) * factor),
+            fat: Math.round((food.fat || 0) * factor)
+        };
 
-        setFormCal(Math.round(food.calories * factor));
-        setFormProt(Math.round((food.protein || 0) * factor));
-        setFormCarbs(Math.round((food.carbs || 0) * factor));
-        setFormFat(Math.round((food.fat || 0) * factor));
+        setFormCal(result.calories);
+        setFormProt(result.protein);
+        setFormCarbs(result.carbs);
+        setFormFat(result.fat);
+        return result;
     }, [getUnitFactor]);
 
     const analyzeText = useCallback(async (food: string, qty: number, unit: string) => {
-        if (!food.trim()) return;
+        if (!food.trim()) return null;
 
         // If we already have base nutrients for this exact food name, just recalculate locally
         if (baseNutrients && baseNutrients.description.toLowerCase() === food.toLowerCase()) {
-            localCalculate(baseNutrients, qty, unit);
             setAnalyzed(true);
-            return;
+            return localCalculate(baseNutrients, qty, unit);
         }
 
         const numQty = typeof qty === 'number' ? qty : 1;
@@ -324,11 +358,10 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
             if (match) {
                 setBaseNutrients(match);
                 setFormDesc(match.description);
-                localCalculate(match, numQty, unit || 'porção');
-                setAnalyzed(true);
                 setIsFromDb(true);
+                setAnalyzed(true);
                 setAnalyzeLoading(false);
-                return;
+                return localCalculate(match, numQty, unit || 'porção');
             }
 
             setIsFromDb(false);
@@ -337,8 +370,8 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
                 const result = results[0];
                 setBaseNutrients(result);
                 setFormDesc(result.description);
-                localCalculate(result, numQty, unit || 'unidade');
                 setAnalyzed(true);
+                return localCalculate(result, numQty, unit || 'unidade');
             } else if (results.length > 1) {
                 setPhotoItems(results);
                 setModalMode('photoItems');
@@ -348,6 +381,7 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
         } finally {
             setAnalyzeLoading(false);
         }
+        return null;
     }, [baseNutrients, localCalculate]);
 
     const fetchSuggestions = useCallback(async (query: string) => {
@@ -375,12 +409,19 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
         setFormDesc(value);
         setAnalyzed(false);
         setIsFromDb(false);
-        setUnitOptions([]); setFormUnit('');
 
-        if (suggestDebounceRef.current) clearTimeout(suggestDebounceRef.current);
         if (value.trim().length >= 2) {
+            if (unitOptions.length === 0) {
+                setUnitOptions(DEFAULT_UNITS);
+                setFormUnit('gramas');
+                setFormQty(100);
+            }
+            if (suggestDebounceRef.current) clearTimeout(suggestDebounceRef.current);
             suggestDebounceRef.current = setTimeout(() => fetchSuggestions(value), 400);
         } else {
+            setUnitOptions([]);
+            setFormUnit('');
+            setFormQty('');
             setSuggestions([]);
             setShowSuggestions(false);
         }
@@ -489,35 +530,26 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
         }
     }
 
-    async function handlePhotoAnalysis(file: File) {
-        setModalMode('photo');
-        setAnalyzeLoading(true);
-        try {
-            const { base64, mimeType } = await compressImage(file);
-            const result = await aiService.analyzeFoodPhoto(base64, mimeType);
-            setFormDesc(result.description);
-            setFormCal(result.calories);
-            setFormProt(result.protein);
-            setFormCarbs(result.carbs);
-            setFormFat(result.fat);
-            setAnalyzed(true);
-            setModalMode('manual');
-        } catch (e) {
-            console.error('Photo analysis error', e);
-            toast.error('Não foi possível analisar a foto. Tente tirar a foto mais de perto ou preencha manualmente.');
-            setModalMode('manual');
-        } finally {
-            setAnalyzeLoading(false);
-        }
-    }
 
     async function handleCameraPhoto(file: File) {
         setModalMode('photo');
         setAnalyzeLoading(true);
+        setDetectedItems([]);
+
+        // Show local preview immediately
+        const reader = new FileReader();
+        reader.onload = (e) => setCapturedPhoto(e.target?.result as string);
+        reader.readAsDataURL(file);
+
         try {
             const { base64, mimeType } = await compressImage(file);
             const items = await aiService.analyzeFoodPhotoItems(base64, mimeType);
+
+            // Populate detected items for the 'analysing' view
+            setDetectedItems(items.map(it => it.description));
+
             if (items.length === 1) {
+                // Short-circuit to manual if only one item
                 setFormDesc(items[0].description);
                 setFormCal(items[0].calories);
                 setFormProt(items[0].protein);
@@ -526,8 +558,9 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
                 setAnalyzed(true);
                 setModalMode('manual');
             } else {
-                setPhotoItems(items);
-                setModalMode('photoItems');
+                setPhotoItems(items.map(it => ({ ...it, quantity: 1, unit: 'porção' })));
+                // We stay in 'photo' mode for a moment so user sees the detected items list, 
+                // but the JSX 'Continuar' button will move them to 'photoItems'
             }
         } catch (e) {
             console.error('Camera photo analysis error', e);
@@ -536,6 +569,25 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
         } finally {
             setAnalyzeLoading(false);
         }
+    }
+
+    function updatePhotoItemQty(index: number, newQty: number) {
+        setPhotoItems(prev => {
+            const updated = [...prev];
+            const item = updated[index];
+            const currentQty = (item as any).quantity || 1;
+            const factor = newQty / currentQty;
+
+            updated[index] = {
+                ...item,
+                quantity: newQty,
+                calories: Math.round(item.calories * factor),
+                protein: Number((item.protein * factor).toFixed(1)),
+                carbs: Number((item.carbs * factor).toFixed(1)),
+                fat: Number((item.fat * factor).toFixed(1))
+            } as any;
+            return updated;
+        });
     }
 
     // Attach stream to video element whenever camera mode activates
@@ -650,23 +702,66 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
         }, { onConflict: 'user_id,date' });
     }
 
-    async function saveMeal() {
+    async function calculateAndSaveMeal() {
         if (!formDesc.trim()) {
             toast.error('Descreva o alimento primeiro.');
             return;
         }
+
+        const numQty = typeof formQty === 'number' ? formQty : 0;
+        const selectedUnit = formUnit || 'gramas';
+
+        // Sanity check before expensive calculation
+        const sanity = checkQuantitySanity(numQty, selectedUnit, formDesc);
+        if (!sanity.ok) {
+            toast.error(sanity.message);
+            return;
+        }
+
+        let calculationResult = null;
+        setAnalyzeLoading(true);
+        try {
+            calculationResult = await analyzeText(formDesc, numQty, selectedUnit);
+        } catch (e) {
+            console.error('Calculation failed', e);
+            toast.error('Falha ao calcular nutrientes. Salvando para cálculo em segundo plano.');
+        } finally {
+            setAnalyzeLoading(false);
+        }
+
+        await saveMeal(calculationResult || undefined);
+    }
+
+    async function saveMeal(overrides?: MacroTotals) {
+        if (!formDesc.trim()) {
+            toast.error('Descreva o alimento primeiro.');
+            return;
+        }
+
+        const numQty = typeof formQty === 'number' ? formQty : 0;
+        const selectedUnit = formUnit || 'gramas';
+
+        // Sanity check
+        const sanity = checkQuantitySanity(numQty, selectedUnit, formDesc);
+        if (!sanity.ok) {
+            toast.error(sanity.message);
+            return;
+        }
+
         setSaving(true);
-        const numQty = typeof formQty === 'number' ? formQty : 1;
-        const fullDescription = formUnit ? `${numQty} ${formUnit} de ${formDesc}` : formDesc;
+        const fullDescription = selectedUnit ? `${numQty} ${selectedUnit} de ${formDesc}` : formDesc;
+
         const mealData = {
             user_id: profile.id,
             meal_date: selectedDate,
             meal_type: modalMealType,
             description: fullDescription,
-            calories: formCal,
-            protein: formProt,
-            carbs: formCarbs,
-            fat: formFat,
+            calories: overrides?.calories ?? formCal,
+            protein: overrides?.protein ?? formProt,
+            carbs: overrides?.carbs ?? formCarbs,
+            fat: overrides?.fat ?? formFat,
+            quantity: numQty,
+            unit: selectedUnit,
             logged_at: new Date().toISOString(),
         };
 
@@ -688,9 +783,9 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
         await rewardGamification(1);
         onUpdate();
 
-        // Background calculation if not analyzed
-        if (!analyzed && formCal === 0) {
-            const toastId = toast.loading(`Calculando nutrientes do alimento...`);
+        // Background calculation if not analyzed AND no overrides provided
+        if (!overrides && !analyzed && formCal === 0) {
+            const toastId = toast.loading(`Calculando nutrientes em segundo plano...`);
             try {
                 const results = await aiService.analyzeFoodText(fullDescription);
                 const result = results[0] || { calories: 0, protein: 0, carbs: 0, fat: 0 };
@@ -1209,90 +1304,128 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
                                         </div>
                                         <div>
                                             <p className="text-text-main font-semibold text-sm">Código de Barras</p>
-                                            <p className="text-text-muted text-xs">Escaneie um produto industrializado</p>
+                                            <p className="text-text-muted text-xs">Escaneie o código da embalagem</p>
                                         </div>
                                     </button>
 
-                                    <div className="grid grid-cols-2 gap-3 mt-1">
-                                        <label
-                                            className="flex flex-col items-center justify-center gap-2 p-4 rounded-xl text-center cursor-pointer"
-                                            style={{ backgroundColor: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.3)' }}
-                                        >
-                                            <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: 'rgba(59,130,246,0.2)' }}>
-                                                <Images size={20} style={{ color: '#3B82F6' }} />
-                                            </div>
-                                            <div>
-                                                <p className="text-text-main font-semibold text-xs">Galeria</p>
-                                            </div>
-                                            <input
-                                                type="file"
-                                                accept="image/*"
-                                                className="hidden"
-                                                onChange={(e) => {
-                                                    const f = e.target.files?.[0];
-                                                    if (f) {
-                                                        setTimeout(() => handlePhotoAnalysis(f), 500);
-                                                    }
-                                                    e.target.value = '';
-                                                }}
-                                            />
-                                        </label>
+                                    <button
+                                        type="button"
+                                        onClick={() => setModalMode('manual')}
+                                        className="flex items-center gap-4 px-4 py-4 rounded-xl text-left w-full"
+                                        style={{ backgroundColor: 'rgba(var(--text-main-rgb), 0.04)', border: '1px solid var(--border-main)' }}
+                                    >
+                                        <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: 'rgba(var(--text-main-rgb), 0.05)' }}>
+                                            <Activity size={20} className="text-text-muted" />
+                                        </div>
+                                        <div>
+                                            <p className="text-text-main font-semibold text-sm">Lançamento por Texto</p>
+                                            <p className="text-text-muted text-xs">Digite o que você comeu e a IA calcula</p>
+                                        </div>
+                                    </button>
+                                </div>
+                            )}
+
+                            {modalMode === 'photo' && (
+                                <div className="flex flex-col gap-4">
+                                    <div className="relative w-full rounded-2xl overflow-hidden" style={{ aspectRatio: '1/1' }}>
+                                        {capturedPhoto && <img src={capturedPhoto} className="w-full h-full object-cover" alt="Captured" />}
+                                    </div>
+                                    <div className="flex flex-col gap-2">
+                                        <h4 className="text-text-main font-bold">Analisando Refeição...</h4>
+                                        <div className="flex flex-col gap-4">
+                                            {detectedItems.length === 0 ? (
+                                                <div className="flex flex-col items-center gap-4 py-8">
+                                                    <Loader2 size={32} className="animate-spin text-primary" />
+                                                    <p className="text-text-muted text-center max-w-xs">{analyzeLoading ? 'A IA está identificando os alimentos...' : 'Preparando análise...'}</p>
+                                                </div>
+                                            ) : (
+                                                <div className="flex flex-col gap-2">
+                                                    {detectedItems.map((item, i) => (
+                                                        <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-card border" style={{ borderColor: 'var(--border-main)' }}>
+                                                            <div className="flex items-center gap-3">
+                                                                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs">
+                                                                    {i + 1}
+                                                                </div>
+                                                                <span className="text-text-main font-medium">{item}</span>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <div className="flex gap-3">
                                         <button
                                             type="button"
-                                            onClick={() => setModalMode('manual')}
-                                            className="flex flex-col items-center justify-center gap-2 p-4 rounded-xl text-center"
-                                            style={{ backgroundColor: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)' }}
+                                            onClick={() => { setCapturedPhoto(null); setModalMode('camera'); }}
+                                            className="flex-1 py-3 rounded-xl text-sm font-semibold text-gray-400"
+                                            style={{ backgroundColor: 'rgba(var(--text-main-rgb), 0.06)' }}
                                         >
-                                            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: 'rgba(var(--proteina-rgb), 0.2)' }}>
-                                                <PenLine size={20} className="text-proteina" />
-                                            </div>
-                                            <div>
-                                                <p className="text-text-main font-semibold text-xs">Manual</p>
-                                            </div>
+                                            Refazer Foto
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setModalMode('photoItems')}
+                                            disabled={detectedItems.length === 0}
+                                            className="flex-[2] py-3 rounded-xl font-bold text-white shadow-lg"
+                                            style={{ background: 'linear-gradient(135deg, var(--primary), var(--primary-hover))', opacity: detectedItems.length === 0 ? 0.5 : 1 }}
+                                        >
+                                            Continuar
                                         </button>
                                     </div>
                                 </div>
                             )}
 
-                            {modalMode === 'photo' && analyzeLoading && (
-                                <div className="flex flex-col items-center gap-4 py-8">
-                                    <Loader2 size={32} className="animate-spin" style={{ color: 'var(--primary)' }} />
-                                    <p className="text-text-muted text-sm">Analisando a foto com IA...</p>
-                                </div>
-                            )}
-
                             {modalMode === 'photoItems' && (
                                 <div className="flex flex-col gap-4">
-                                    <p className="text-gray-400 text-xs font-semibold uppercase tracking-wider">
-                                        {photoItems.length} {photoItems.length === 1 ? 'item detectado' : 'itens detectados'} — toque no × para remover
-                                    </p>
-                                    <div className="flex flex-col gap-2">
-                                        {photoItems.map((item, idx) => (
-                                            <div
-                                                key={idx}
-                                                className="flex items-center gap-3 px-4 py-3 rounded-xl"
-                                                style={{ backgroundColor: 'rgba(var(--text-main-rgb), 0.04)', border: '1px solid var(--border-main)' }}
-                                            >
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="text-text-main text-sm font-medium truncate">{item.description}</p>
-                                                    <p className="text-text-muted text-xs mt-0.5">
-                                                        {item.calories} kcal · P {item.protein}g · C {item.carbs}g · G {item.fat}g
-                                                    </p>
+                                    <h4 className="text-text-main font-bold">Ajustes Finais</h4>
+                                    <div className="flex flex-col gap-2 max-h-[300px] overflow-y-auto pr-1">
+                                        {photoItems.map((item, i) => (
+                                            <div key={i} className="p-4 rounded-xl bg-card border flex flex-col gap-3" style={{ borderColor: 'var(--border-main)' }}>
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-text-main font-bold">{item.description}</span>
+                                                    <button onClick={() => setPhotoItems(prev => prev.filter((_, idx) => idx !== i))} className="text-red-500 hover:text-red-600 transition-colors">
+                                                        <Trash2 size={16} />
+                                                    </button>
                                                 </div>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setPhotoItems(prev => prev.filter((_, i) => i !== idx))}
-                                                    className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-full text-text-muted hover:text-accent transition-colors"
-                                                    style={{ backgroundColor: 'rgba(var(--accent-rgb), 0.08)' }}
-                                                >
-                                                    <X size={14} />
-                                                </button>
+                                                <div className="flex items-center gap-3">
+                                                    <div className="flex items-center gap-2 flex-1">
+                                                        <button
+                                                            onClick={() => updatePhotoItemQty(i, Math.max(0.1, (item.quantity as number) - 0.5))}
+                                                            className="w-8 h-8 rounded-lg flex items-center justify-center"
+                                                            style={{ backgroundColor: 'rgba(var(--text-main-rgb), 0.05)' }}
+                                                        >
+                                                            -
+                                                        </button>
+                                                        <input
+                                                            type="number"
+                                                            value={item.quantity}
+                                                            onChange={(e) => updatePhotoItemQty(i, parseFloat(e.target.value) || 0)}
+                                                            className="w-12 text-center bg-transparent text-text-main font-bold outline-none"
+                                                        />
+                                                        <button
+                                                            onClick={() => updatePhotoItemQty(i, (item.quantity as number) + 0.5)}
+                                                            className="w-8 h-8 rounded-lg flex items-center justify-center"
+                                                            style={{ backgroundColor: 'rgba(var(--text-main-rgb), 0.05)' }}
+                                                        >
+                                                            +
+                                                        </button>
+                                                    </div>
+                                                    <span className="text-text-muted text-xs uppercase font-bold tracking-widest">{item.unit}</span>
+                                                </div>
+                                                <div className="flex gap-4 text-xs font-medium">
+                                                    <span className="text-emerald-500">{Math.round(item.calories)} kcal</span>
+                                                    <span className="text-purple-500">{item.protein}g prot</span>
+                                                    <span className="text-amber-500">{item.carbs}g carb</span>
+                                                    <span className="text-red-500">{item.fat}g gord</span>
+                                                </div>
                                             </div>
                                         ))}
                                     </div>
 
                                     {photoItems.length === 0 && (
-                                        <p className="text-center text-gray-500 text-sm py-4">Nenhum item. Preencha manualmente.</p>
+                                        <p className="text-center text-gray-500 text-sm py-4">Nenhum item. Adicione manualmente ou refaça a foto.</p>
                                     )}
 
                                     <div className="flex gap-3 mt-2">
@@ -1302,7 +1435,7 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
                                             className="flex-1 py-3 rounded-xl text-sm font-semibold text-gray-400"
                                             style={{ backgroundColor: 'rgba(var(--text-main-rgb), 0.06)' }}
                                         >
-                                            Manual
+                                            Adicionar Manual
                                         </button>
                                         <motion.button
                                             whileHover={{ scale: 1.02 }}
@@ -1373,7 +1506,7 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
                                                 onChange={(e) => handleDescChange(e.target.value)}
                                                 onKeyDown={(e) => {
                                                     if (e.key === 'Escape') setShowSuggestions(false);
-                                                    if (e.key === 'Enter') onAddDirectly();
+                                                    if (e.key === 'Enter') calculateAndSaveMeal();
                                                 }}
                                                 className="w-full px-3 py-3 pr-10 rounded-xl text-text-main text-sm outline-none"
                                                 style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-main)' }}
@@ -1385,7 +1518,15 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
                                                         ? isFromDb
                                                             ? <Database size={16} className="text-blue-500" />
                                                             : <Sparkles size={16} className="text-emerald-500" />
-                                                        : null}
+                                                        : (
+                                                            <button
+                                                                type="button"
+                                                                onClick={onSearch}
+                                                                className="text-text-muted hover:text-primary transition-colors"
+                                                            >
+                                                                <TrendingUp size={16} />
+                                                            </button>
+                                                        )}
                                             </div>
 
                                             {/* Suggestions dropdown */}
@@ -1415,39 +1556,10 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
                                                 )}
                                             </AnimatePresence>
                                         </div>
-
-                                        <div className="flex gap-2 mt-2">
-                                            <button
-                                                onClick={onSearch}
-                                                disabled={formDesc.trim().length < 2 || suggestLoading}
-                                                className="flex-1 py-2 rounded-lg text-xs font-semibold text-white transition-colors"
-                                                style={{ backgroundColor: 'rgba(124,58,237,0.2)', border: '1px solid rgba(124,58,237,0.4)', opacity: formDesc.trim().length < 2 ? 0.5 : 1 }}
-                                            >
-                                                {suggestLoading ? 'Buscando...' : 'Buscar'}
-                                            </button>
-                                            <button
-                                                onClick={onAddDirectly}
-                                                disabled={formDesc.trim().length < 2 || analyzeLoading}
-                                                className="flex-1 py-2 rounded-lg text-xs font-bold text-white transition-colors"
-                                                style={{ background: 'linear-gradient(135deg, #10B981, #059669)', opacity: formDesc.trim().length < 2 ? 0.5 : 1 }}
-                                            >
-                                                {analyzeLoading ? 'Calculando...' : 'Adicionar'}
-                                            </button>
-                                        </div>
-
-                                        <p className="text-gray-600 text-xs mt-1">
-                                            <AnimatePresence>
-                                                {analyzed && (
-                                                    <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-emerald-500 font-semibold mb-1">
-                                                        Nutrientes calculados automaticamente ✓
-                                                    </motion.span>
-                                                )}
-                                            </AnimatePresence>
-                                        </p>
                                     </div>
 
                                     {/* Quantity + Unit selector */}
-                                    {(unitOptions.length > 0 || analyzed) && (
+                                    {unitOptions.length > 0 && (
                                         <div className="flex flex-col gap-2">
                                             <label className="text-text-muted text-xs font-medium">Quantidade e Unidade</label>
                                             <div className="flex flex-col gap-3">
@@ -1457,7 +1569,14 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
                                                         min={0.1}
                                                         step={0.1}
                                                         value={formQty}
-                                                        placeholder="1"
+                                                        placeholder="100"
+                                                        onFocus={(e) => {
+                                                            e.target.select();
+                                                            setFormQty('');
+                                                        }}
+                                                        onBlur={() => {
+                                                            if (formQty === '') setFormQty(100);
+                                                        }}
                                                         onChange={(e) => handleQtyChange(e.target.value === '' ? '' : parseFloat(e.target.value))}
                                                         className="w-24 px-4 py-3 rounded-xl text-text-main text-lg font-black text-center outline-none"
                                                         style={{ backgroundColor: 'rgba(var(--primary-rgb), 0.15)', border: '1px solid rgba(var(--primary-rgb), 0.4)' }}
@@ -1470,7 +1589,7 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
                                                         <button
                                                             key={u}
                                                             onClick={() => handleUnitChange(u)}
-                                                            className="px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider transition-all whitespace-nowrap"
+                                                            className="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all whitespace-nowrap"
                                                             style={{
                                                                 backgroundColor: formUnit === u ? 'rgba(var(--primary-rgb), 0.25)' : 'rgba(var(--text-main-rgb), 0.04)',
                                                                 border: `1px solid ${formUnit === u ? 'var(--primary)' : 'var(--border-main)'}`,
@@ -1511,16 +1630,45 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
                                         </div>
                                     )}
 
-                                    <motion.button
-                                        whileHover={{ scale: 1.02 }}
-                                        whileTap={{ scale: 0.97 }}
-                                        onClick={saveMeal}
-                                        disabled={saving || !formDesc.trim()}
-                                        className="w-full py-4 rounded-xl font-bold text-white"
-                                        style={{ background: 'linear-gradient(135deg, var(--primary), var(--primary-hover))', opacity: (saving || !formDesc.trim()) ? 0.5 : 1 }}
-                                    >
-                                        {saving ? 'Salvando...' : 'Salvar Refeição'}
-                                    </motion.button>
+                                    <div className="flex flex-col gap-3 mt-2">
+                                        <div className="flex gap-3">
+                                            <motion.button
+                                                whileHover={{ scale: 1.02 }}
+                                                whileTap={{ scale: 0.97 }}
+                                                onClick={() => saveMeal()}
+                                                disabled={saving || !formDesc.trim()}
+                                                className="flex-1 py-4 rounded-xl font-bold text-text-main border border-border-main"
+                                                style={{ backgroundColor: 'rgba(var(--text-main-rgb), 0.05)', opacity: (saving || !formDesc.trim()) ? 0.5 : 1 }}
+                                            >
+                                                {saving ? <Loader2 size={18} className="animate-spin mx-auto" /> : 'Salvar Agora'}
+                                                {!saving && <p className="text-[10px] font-normal opacity-60">IA em 2º plano</p>}
+                                            </motion.button>
+
+                                            <motion.button
+                                                whileHover={{ scale: 1.02 }}
+                                                whileTap={{ scale: 0.97 }}
+                                                onClick={calculateAndSaveMeal}
+                                                disabled={saving || analyzeLoading || !formDesc.trim()}
+                                                className="flex-[1.5] py-4 rounded-xl font-bold text-white shadow-lg"
+                                                style={{
+                                                    background: 'linear-gradient(135deg, var(--primary), var(--primary-hover))',
+                                                    opacity: (saving || analyzeLoading || !formDesc.trim()) ? 0.5 : 1
+                                                }}
+                                            >
+                                                {analyzeLoading ? (
+                                                    <div className="flex items-center justify-center gap-2">
+                                                        <Loader2 size={18} className="animate-spin" />
+                                                        <span>Calculando...</span>
+                                                    </div>
+                                                ) : (
+                                                    <>
+                                                        <span>Calcular Nutrientes</span>
+                                                        <p className="text-[10px] font-normal opacity-80">Ver antes de salvar</p>
+                                                    </>
+                                                )}
+                                            </motion.button>
+                                        </div>
+                                    </div>
                                 </div>
                             )}
 

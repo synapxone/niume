@@ -33,6 +33,10 @@ export type Profile = {
 // WORKOUT
 // =====================================================
 
+export type WorkoutCategory = 'musculacao' | 'cardio' | 'modalidade';
+export type PlanType = 'ai' | 'custom' | 'template';
+export type SplitType = 'AB' | 'ABC' | 'PPL' | 'ULUL' | 'ABCDE' | 'FullBody';
+
 export type Exercise = {
   exercise_id: string;   // ExerciseDB id
   name: string;
@@ -62,12 +66,60 @@ export type WorkoutPlan = {
   user_id: string;
   name: string;
   description?: string;
+  category: WorkoutCategory;
+  plan_type: PlanType;
+  modality_id?: string;
+  split_type?: string;
   estimated_weeks: number;
   plan_data: {
     weeks: WorkoutWeek[];
   };
   is_active: boolean;
   created_at: string;
+};
+
+// =====================================================
+// COMMUNITY
+// =====================================================
+
+export type Modality = {
+  id: string;
+  name: string;
+  icon: string;
+  description?: string;
+  created_by?: string;
+  created_at: string;
+};
+
+export type CommunityExercise = {
+  id: string;
+  name: string;
+  category: 'musculacao' | 'cardio';
+  modality_id?: string;
+  muscle_group?: string;
+  equipment?: string;
+  instructions?: string;
+  created_by?: string;
+  created_at?: string;
+};
+
+// =====================================================
+// CARDIO
+// =====================================================
+
+export type CardioSession = {
+  id: string;
+  user_id: string;
+  plan_id?: string;
+  session_date: string;
+  cardio_type?: string;
+  duration_minutes?: number;
+  distance_km?: number;
+  calories_burned?: number;
+  resistance_level?: number;
+  notes?: string;
+  points_earned: number;
+  created_at?: string;
 };
 
 export type WorkoutSession = {
@@ -235,6 +287,7 @@ export function xpForLevel(level: number): number {
 export const POINTS = {
   WORKOUT_COMPLETE: 150,
   WORKOUT_PARTIAL: 75,
+  CARDIO_SESSION: 50,
   MEAL_LOGGED: 25,
   STREAK_BONUS: 10,   // per consecutive day
   BODY_PHOTO: 50,

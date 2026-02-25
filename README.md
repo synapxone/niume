@@ -2,6 +2,8 @@
 
 Aplicativo de fitness pessoal com IA — treinos, nutrição, gamificação e acompanhamento de evolução. (Antigo Personall)
 
+> **v1.4.0** — Reestruturação completa da seção de treino: 3 categorias (Musculação / Cardio / Modalidade), banco de exercícios comunitário, moderação de conteúdo em 2 camadas, e plano semanal navegável com gráficos de progresso.
+
 ---
 
 ## Stack
@@ -71,6 +73,11 @@ create table workout_plans (
   estimated_weeks int not null,
   plan_data jsonb not null,
   is_active boolean default true,
+  -- v1.4.0: categorias
+  category text default 'musculacao', -- 'musculacao' | 'cardio' | 'modalidade'
+  plan_type text default 'ai',        -- 'ai' | 'custom' | 'template'
+  modality_id uuid references modalities(id),
+  split_type text,
   created_at timestamptz default now()
 );
 
@@ -100,6 +107,8 @@ create table meals (
   protein numeric(6,1) not null default 0,
   carbs numeric(6,1) not null default 0,
   fat numeric(6,1) not null default 0,
+  quantity numeric(8,2),
+  unit text,
   logged_at timestamptz default now()
 );
 
@@ -311,6 +320,19 @@ npm run app:bundle:ota # Gerar .zip para atualização em tempo real
 
 ---
 
+## Solução de Problemas
+
+### Erro: `command 'claude-vscode.editor.openLast' not found`
+Este erro ocorre quando a extensão **Claude Code** no VS Code falha ao iniciar corretamente (comum em versões recentes no Windows).
+
+**Como resolver:**
+1. **Atualize a extensão:** Verifique se há atualizações para a extensão "Claude Code" no Marketplace. Versões 2.1.52+ corrigem este bug.
+2. **Downgrade (se necessário):** Se a atualização não resolver, clique na engrenagem da extensão → "Install Another Version..." → selecione **2.1.49**.
+3. **Recarregue o VS Code:** Abra o Command Palette (`Ctrl+Shift+P`) e execute `Developer: Reload Window`.
+4. **Limpe o cache:** Se persistir, desinstale a extensão e apague a pasta `%APPDATA%\Code\User\globalStorage\anthropic.claude-code` antes de reinstalar.
+
+---
+
 ## Publicação Mobile & OTA Ninja
 
 O niume utiliza **Capacitor** para rodar nativamente em iOS e Android. Para manter o custo R$ 0,00 e permitir atualizações em tempo real, implementamos o **OTA Ninja Mode**:
@@ -356,13 +378,25 @@ O niume utiliza **Capacitor** para rodar nativamente em iOS e Android. Para mant
 
 ## Histórico / Changelog Diário (Comunicação entre Agentes)
 
-**Status e Versão Atual:** v1.3.1
+### v1.4.0 — Reestruturação Completa de Treino
+- **3 Categorias de Treino**: Musculação, Cardio e Modalidade, cada uma com 1 plano ativo simultâneo.
+- **Musculação**: 3 fluxos de criação — Treino Pronto (split + IA), Manual (dias + exercícios), IA Completa.
+- **Splits disponíveis**: Full Body, A/B, A/B/C, Push/Pull/Legs, Upper/Lower, A/B/C/D/E.
+- **Cardio**: Sessão Rápida com timer, distância, resistência e calorias estimadas (MET). Histórico com gráfico de calorias/semana.
+- **Modalidade**: Grid comunitário de esportes (Pilates, Boxe, Jump, Karatê, Yoga, etc.). Usuários adicionam novas modalidades que ficam disponíveis para todos.
+- **Banco Comunitário**: Exercícios cadastrados são compartilhados entre todos os usuários. IA gera instruções automaticamente no cadastro.
+- **Moderação em 2 camadas**: Blocklist local (DB) + validação contextual por IA (Gemini) para conteúdo comunitário.
+- **WeeklyPlanView**: Plano semanal navegável com estatísticas (sessões, volume, sequência, sparklines).
+- **WorkoutHub**: Hub central com gráfico de atividade dos últimos 7 dias + status de cada categoria.
+- **Refinamento de Registro de Nutrientes**:
+  - **Lógica de Salvamento Duplo**: Botão "Salvar Agora" (IA em background) vs "Calcular Nutrientes" (análise instantânea antes de salvar).
+  - **Sanidade Nutricional**: Bloqueio automático de quantidades extravagantes (ex: 100 ovos) ou suspeitamente baixas (ex: 1g de arroz).
+  - **UX Manual**: Campo de quantidade limpa ao clicar; restauração de seletor de unidade e cards de macros.
+- **SQL Migration**: `migrations/v2_workout_categories.sql` e `migrations/v3_meal_details.sql` (novas colunas e tabelas).
 
-### Últimas Atualizações e Correções (Fev/2026):
-### v1.3.1
-- Correção: Caixa de login na Landing Page não é mais transparente.
-- Interface: Diferenciação visual entre dados vindos do Banco de Dados (ícone azul) e da IA (ícone verde) no Log Nutricional.
-- Estabilidade: Otimização do visualizador 3D para dispositivos móveis e correção de inicialização da câmera no scanner.
+**Arquivos criados/modificados**: `WorkoutHub.tsx`, `MusculacaoHub.tsx`, `CardioHub.tsx`, `ModalidadeHub.tsx`, `WeeklyPlanView.tsx`, `CardioSessionTracker.tsx`, `ExercisePicker.tsx`, `moderationService.ts`, `NutritionLog.tsx`
+
+**Status e Versão Atual:** v1.4.0
 
 ### v1.2.9
 - Estética: Modo Claro definido como padrão do sistema.
