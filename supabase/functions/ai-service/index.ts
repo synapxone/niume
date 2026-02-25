@@ -189,7 +189,23 @@ async function callOpenAI(prompt: string, key: string, base64?: string, mimeType
 // --- PROMPT GENERATORS ---
 
 function getAnalyzeFoodTextPrompt(description: string) {
-    return `Você é um nutricionista. Analise: "${description}". Separe múltiplos itens. Pratos compostos (strogonoff/feijoada) trate como UM só. Retorne JSON: { "items": [{ "description": "nome", "calories": number, "protein": number, "carbs": number, "fat": number }] }`;
+    return `Você é um nutricionista experiente. Analise o alimento: "${description}". 
+    Regras estritas:
+    1. Forneça os valores nutricionais SEMPRE baseados em exatas 100 gramas do alimento.
+    2. No campo "description", retorne apenas o nome simples do alimento (ex: "Bombom", em vez de "1 unidade de bombom").
+    3. No campo "unit_weight", estime o peso em gramas de uma unidade comum ou porção padrão desse alimento.
+    
+    Retorne APENAS um objeto JSON no formato:
+    { 
+      "items": [{ 
+        "description": "Nome do Alimento", 
+        "calories": calorias_em_100g, 
+        "protein": proteina_em_100g, 
+        "carbs": carboidratos_em_100g, 
+        "fat": gordura_em_100g,
+        "unit_weight": peso_de_UMA_unidade_em_gramas_EX_sushi_25_bombom_20_porcao_prato_300
+      }] 
+    }`;
 }
 
 function getAnalyzeFoodPhotoPrompt() {

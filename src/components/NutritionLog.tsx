@@ -160,6 +160,7 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
     const [formQty, setFormQty] = useState<number | string>('');
     const [formUnit, setFormUnit] = useState('');
     const [unitOptions, setUnitOptions] = useState<string[]>([]);
+    const [baseNutrients, setBaseNutrients] = useState<FoodAnalysis | null>(null);
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const suggestDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const qtyDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -247,6 +248,7 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
         setFormDesc(''); setFormCal(0); setFormProt(0); setFormCarbs(0); setFormFat(0);
         setFormQty(''); setFormUnit(''); setUnitOptions([]);
         setAnalyzed(false); setIsFromDb(false); setSuggestions([]); setShowSuggestions(false);
+        setBaseNutrients(null);
         if (debounceRef.current) clearTimeout(debounceRef.current);
         if (suggestDebounceRef.current) clearTimeout(suggestDebounceRef.current);
         if (qtyDebounceRef.current) clearTimeout(qtyDebounceRef.current);
@@ -258,52 +260,85 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
         loadUnitsAndAnalyze(formDesc, 1, '');
     }
 
+    const getUnitFactor = useCallback((unit: string, qty: number, unitWeight: number = 100): number => {
+        const u = unit.toLowerCase().trim();
+
+        // Weight based units (relative to 100g)
+        if (['g', 'gramas', 'grama', 'gr', 'ml'].includes(u)) {
+            return qty / 100;
+        }
+
+        if (['kg', 'quilo', 'quilos'].includes(u)) {
+            return (qty * 1000) / 100;
+        }
+
+        if (['oz', 'onça'].includes(u)) {
+            return (qty * 28.35) / 100;
+        }
+
+        // Unit based (relative to unitWeight which is weight of 1 unit)
+        // factor = (qty * weightOfOneUnit) / 100
+        return (qty * unitWeight) / 100;
+    }, []);
+
+    const localCalculate = useCallback((food: FoodAnalysis, qty: number, unit: string) => {
+        const factor = getUnitFactor(unit, qty, food.unit_weight || 100);
+
+        setFormCal(Math.round(food.calories * factor));
+        setFormProt(Math.round((food.protein || 0) * factor));
+        setFormCarbs(Math.round((food.carbs || 0) * factor));
+        setFormFat(Math.round((food.fat || 0) * factor));
+    }, [getUnitFactor]);
+
     const analyzeText = useCallback(async (food: string, qty: number, unit: string) => {
         if (!food.trim()) return;
+
+        // If we already have base nutrients for this exact food name, just recalculate locally
+        if (baseNutrients && baseNutrients.description.toLowerCase() === food.toLowerCase()) {
+            localCalculate(baseNutrients, qty, unit);
+            setAnalyzed(true);
+            return;
+        }
+
         const numQty = typeof qty === 'number' ? qty : 1;
-        const fullDesc = unit ? `${numQty} ${unit} de ${food}` : food;
+        // Request for 100g to keep database clean
+        const searchDesc = `100g de ${food}`;
         setAnalyzeLoading(true);
         setAnalyzed(false);
         try {
-            // Prefer local database for exact or close matches (TACO)
-            if (!unit || unit === 'porção' || unit === 'unidade') {
-                const dbResults = await aiService.searchFoodDatabase(food);
-                // Try exact match or if there is only one result that starts with the query
-                const match = dbResults.find(r => r.description.toLowerCase() === food.toLowerCase()) ||
-                    (dbResults.length > 0 ? dbResults[0] : null);
+            // Prefer local database (normalized items)
+            const dbResults = await aiService.searchFoodDatabase(food);
+            const match = dbResults.find(r => r.description.toLowerCase() === food.toLowerCase()) ||
+                (dbResults.length > 0 ? dbResults[0] : null);
 
-                if (match) {
-                    setFormCal(Math.round(match.calories * numQty));
-                    setFormProt(Math.round(match.protein * numQty));
-                    setFormCarbs(Math.round(match.carbs * numQty));
-                    setFormFat(Math.round(match.fat * numQty));
-                    setAnalyzed(true);
-                    setIsFromDb(true);
-                    setAnalyzeLoading(false);
-                    return;
-                }
+            if (match) {
+                setBaseNutrients(match);
+                setFormDesc(match.description);
+                localCalculate(match, numQty, unit || 'porção');
+                setAnalyzed(true);
+                setIsFromDb(true);
+                setAnalyzeLoading(false);
+                return;
             }
 
             setIsFromDb(false);
-
-            const results = await aiService.analyzeFoodText(fullDesc);
+            const results = await aiService.analyzeFoodText(searchDesc);
             if (results.length === 1) {
                 const result = results[0];
-                setFormCal(result.calories);
-                setFormProt(result.protein);
-                setFormCarbs(result.carbs);
-                setFormFat(result.fat);
+                setBaseNutrients(result);
+                setFormDesc(result.description);
+                localCalculate(result, numQty, unit || 'unidade');
                 setAnalyzed(true);
             } else if (results.length > 1) {
                 setPhotoItems(results);
                 setModalMode('photoItems');
             }
-        } catch {
-            // keep zeros
+        } catch (e) {
+            console.error('Analyze error', e);
         } finally {
             setAnalyzeLoading(false);
         }
-    }, []);
+    }, [baseNutrients, localCalculate]);
 
     const fetchSuggestions = useCallback(async (query: string) => {
         if (query.trim().length < 2) { setSuggestions([]); setShowSuggestions(false); return; }
@@ -425,16 +460,23 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
 
     function handleQtyChange(qty: number | string) {
         setFormQty(qty);
-        setAnalyzed(false);
-        if (qtyDebounceRef.current) clearTimeout(qtyDebounceRef.current);
-        const numQty = typeof qty === 'number' ? qty : 1;
-        qtyDebounceRef.current = setTimeout(() => analyzeText(formDesc, numQty, formUnit), 800);
+        const numQty = Number(qty);
+        if (baseNutrients) {
+            localCalculate(baseNutrients, isNaN(numQty) ? 0 : numQty, formUnit);
+        } else {
+            if (qtyDebounceRef.current) clearTimeout(qtyDebounceRef.current);
+            qtyDebounceRef.current = setTimeout(() => analyzeText(formDesc, isNaN(numQty) ? 1 : numQty, formUnit), 800);
+        }
     }
 
     function handleUnitChange(unit: string) {
         setFormUnit(unit);
         const numQty = typeof formQty === 'number' ? formQty : 1;
-        analyzeText(formDesc, numQty, unit);
+        if (baseNutrients) {
+            localCalculate(baseNutrients, numQty, unit);
+        } else {
+            analyzeText(formDesc, numQty, unit);
+        }
     }
 
     async function handlePhotoAnalysis(file: File) {

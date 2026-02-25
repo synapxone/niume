@@ -184,6 +184,7 @@ export type FoodAnalysis = {
   protein: number;
   carbs: number;
   fat: number;
+  unit_weight?: number; // Estimated gram weight of 1 unit
 };
 
 // =====================================================

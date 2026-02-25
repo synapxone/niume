@@ -69,7 +69,8 @@ export const aiService = {
                     calories: dbItem.calories,
                     protein: Number(dbItem.protein),
                     carbs: Number(dbItem.carbs),
-                    fat: Number(dbItem.fat)
+                    fat: Number(dbItem.fat),
+                    unit_weight: Number(dbItem.unit_weight || 100)
                 });
             } else {
                 // Item not in database. Save it to enrich the database
@@ -81,8 +82,9 @@ export const aiService = {
                             protein: item.protein,
                             carbs: item.carbs,
                             fat: item.fat,
+                            unit_weight: item.unit_weight || 100,
                             serving_size: '100g',
-                            source: 'AI_Crowdsourced'
+                            source: 'AI_Crowdsourced_v2'
                         });
                     } catch (dbErr) {
                         console.warn('Failed to crowdsource food item:', dbErr);
@@ -124,7 +126,8 @@ export const aiService = {
                 calories: item.calories,
                 protein: item.protein,
                 carbs: item.carbs,
-                fat: item.fat
+                fat: item.fat,
+                unit_weight: item.unit_weight
             }));
         } catch (e) {
             console.error('Database search error', e);
