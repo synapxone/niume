@@ -160,7 +160,6 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
     const [formQty, setFormQty] = useState<number | string>('');
     const [formUnit, setFormUnit] = useState('');
     const [unitOptions, setUnitOptions] = useState<string[]>([]);
-    const [unitsLoading, setUnitsLoading] = useState(false);
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const suggestDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const qtyDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -405,19 +404,13 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
         }
     }
 
+    const DEFAULT_UNITS = ['gramas', 'unidade', 'porção', 'colher', 'copo', 'ml', 'Litro'];
+
     async function loadUnitsAndAnalyze(food: string, qty: number, unit: string) {
-        setUnitsLoading(true);
-        try {
-            const units = await aiService.suggestUnits(food);
-            setUnitOptions(units);
-            const firstUnit = unit || units[0] || '';
-            setFormUnit(firstUnit);
-            await analyzeText(food, qty, firstUnit);
-        } catch {
-            await analyzeText(food, qty, unit);
-        } finally {
-            setUnitsLoading(false);
-        }
+        setUnitOptions(DEFAULT_UNITS);
+        const selectedUnit = unit || 'gramas';
+        setFormUnit(selectedUnit);
+        await analyzeText(food, qty, selectedUnit);
     }
 
     function selectSuggestion(item: string) {
@@ -951,7 +944,7 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
                     />
                 </div>
 
-                <div className="flex flex-wrap gap-2.5 justify-start">
+                <div className="flex flex-wrap gap-3 justify-center md:justify-start">
                     {Array.from({ length: Math.max(12, goalCups, waterCups) }).map((_, i) => {
                         const isSelected = i < waterCups;
                         const isNext = i === waterCups;
@@ -960,10 +953,10 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
                                 key={i}
                                 onClick={() => handleCupClick(i)}
                                 className={`relative w-11 h-11 rounded-xl flex items-center justify-center transition-all duration-300 overflow-hidden ${isSelected
-                                    ? 'border-blue-500/40 text-blue-400 shadow-[0_5px_15px_rgba(59,130,246,0.2)]'
+                                    ? 'border-blue-500/40 text-blue-400 shadow-[0_5px_15px_rgba(59,130,246,0.1)]'
                                     : isNext
-                                        ? 'bg-card border-primary/20 text-text-muted hover:border-blue-500/30'
-                                        : 'bg-card border-primary/5 text-text-muted/40'
+                                        ? 'bg-blue-500/5 border-blue-500/20 text-text-muted hover:border-blue-500/30'
+                                        : 'bg-blue-500/2 border-blue-500/10 text-text-muted/20'
                                     } border`}
                             >
                                 {/* Animated Liquid Fill */}
@@ -1393,38 +1386,39 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
                                     </div>
 
                                     {/* Quantity + Unit selector */}
-                                    {(unitOptions.length > 0 || unitsLoading || analyzed) && (
+                                    {(unitOptions.length > 0 || analyzed) && (
                                         <div className="flex flex-col gap-2">
-                                            <label className="text-text-muted text-xs font-medium">Quantidade</label>
-                                            <div className="flex gap-3 items-center">
-                                                <input
-                                                    type="number"
-                                                    min={0.25}
-                                                    step={0.25}
-                                                    value={formQty}
-                                                    placeholder="1"
-                                                    onChange={(e) => handleQtyChange(e.target.value === '' ? '' : parseFloat(e.target.value))}
-                                                    className="w-20 px-3 py-2.5 rounded-xl text-text-main text-sm font-bold text-center outline-none"
-                                                    style={{ backgroundColor: 'rgba(var(--primary-rgb), 0.15)', border: '1px solid rgba(var(--primary-rgb), 0.4)' }}
-                                                />
-                                                <div className="flex-1 flex flex-wrap gap-2">
-                                                    {unitsLoading
-                                                        ? [1, 2, 3].map(i => <div key={i} className="h-8 w-16 rounded-full animate-pulse" style={{ backgroundColor: 'rgba(255,255,255,0.08)' }} />)
-                                                        : unitOptions.map((u) => (
-                                                            <button
-                                                                key={u}
-                                                                onClick={() => handleUnitChange(u)}
-                                                                className="px-3 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap"
-                                                                style={{
-                                                                    backgroundColor: formUnit === u ? 'rgba(var(--primary-rgb), 0.25)' : 'rgba(var(--text-main-rgb), 0.06)',
-                                                                    border: `1px solid ${formUnit === u ? 'var(--primary)' : 'var(--border-main)'}`,
-                                                                    color: formUnit === u ? 'var(--primary)' : 'var(--text-muted)',
-                                                                }}
-                                                            >
-                                                                {u}
-                                                            </button>
-                                                        ))
-                                                    }
+                                            <label className="text-text-muted text-xs font-medium">Quantidade e Unidade</label>
+                                            <div className="flex flex-col gap-3">
+                                                <div className="flex items-center gap-3">
+                                                    <input
+                                                        type="number"
+                                                        min={0.1}
+                                                        step={0.1}
+                                                        value={formQty}
+                                                        placeholder="1"
+                                                        onChange={(e) => handleQtyChange(e.target.value === '' ? '' : parseFloat(e.target.value))}
+                                                        className="w-24 px-4 py-3 rounded-xl text-text-main text-lg font-black text-center outline-none"
+                                                        style={{ backgroundColor: 'rgba(var(--primary-rgb), 0.15)', border: '1px solid rgba(var(--primary-rgb), 0.4)' }}
+                                                    />
+                                                    <span className="text-text-muted font-bold text-sm uppercase tracking-widest">{formUnit}</span>
+                                                </div>
+
+                                                <div className="flex flex-wrap gap-2">
+                                                    {unitOptions.map((u) => (
+                                                        <button
+                                                            key={u}
+                                                            onClick={() => handleUnitChange(u)}
+                                                            className="px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider transition-all whitespace-nowrap"
+                                                            style={{
+                                                                backgroundColor: formUnit === u ? 'rgba(var(--primary-rgb), 0.25)' : 'rgba(var(--text-main-rgb), 0.04)',
+                                                                border: `1px solid ${formUnit === u ? 'var(--primary)' : 'var(--border-main)'}`,
+                                                                color: formUnit === u ? 'var(--primary)' : 'var(--text-muted)',
+                                                            }}
+                                                        >
+                                                            {u}
+                                                        </button>
+                                                    ))}
                                                 </div>
                                             </div>
                                         </div>
