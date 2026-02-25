@@ -2,6 +2,8 @@
 
 Aplicativo de fitness pessoal com IA — treinos, nutrição, gamificação e acompanhamento de evolução. (Antigo Personall)
 
+> **v1.7.2** — Precisão Nutricional: correção no cálculo de unidades Individuais (ex: biscoitos, bombons) com estimativa de peso unitário via IA e feedback visual no log de dieta. Nova coluna `unit_weight` no banco de dados.
+>
 > **v1.7.1** — Foto de perfil com moderação por IA: upload de avatar na tela de perfil; Gemini Vision verifica se a imagem é apropriada antes de salvar (bloqueia nudez, violência, conteúdo perturbador).
 >
 > **v1.7.0** — Comunidade Social: feed de progresso, seguir/ser seguido (mútuo), reações (👏 Parabéns / 🔥 Arrasou / 💪 Não desista), explorar usuários. Menu hamburguer no topo do app.
@@ -381,6 +383,16 @@ O niume utiliza **Capacitor** para rodar nativamente em iOS e Android. Para mant
 ---
 
 ## Histórico / Changelog Diário (Comunicação entre Agentes)
+
+### v1.7.2 — Precisão Nutricional & Unidades
+- **Lógica de Unidades**: Correção do erro de sobrepeso calórico em produtos (ex: biscoitos). O sistema agora estima o peso de uma unidade individual através da IA em vez de assumir 100g ou o pacote todo.
+- **Feedback Visual**: Adicionado indicador visual no formulário de dieta: "(1 unidade considerada como Xg)", dando transparência ao cálculo.
+- **Banco de Dados**: Nova coluna `unit_weight` na tabela `meals` para persistência e edição precisa de porções.
+- **Scanner OFF**: Melhoria na extração de gramatura de servir (`serving_quantity`) da API do Open Food Facts.
+
+### v1.7.1 — Moderação & Branding
+- **Branding PNG**: Padronização de todos os ícones e favicon para formato PNG (removido SVG para maior compatibilidade).
+- **Cores de Treino**: Atualização das cores das categorias (Musculação/Verde, Cardio/Amarelo, Modalidade/Azul) para facilitar a distinção visual.
 
 ### v1.6.0 — Segurança & Arquitetura Pro (Edge Functions)
 - **Identidade Visual**: Atualizado o favicon do site e ícone do PWA para o novo SVG oficial.
