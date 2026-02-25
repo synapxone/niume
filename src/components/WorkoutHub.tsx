@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Dumbbell, Timer, Target, TrendingUp, ChevronRight, BarChart2 } from 'lucide-react';
+import { Dumbbell, Activity, Trophy, Target, TrendingUp, ChevronRight, BarChart2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { getLocalYYYYMMDD } from '../lib/dateUtils';
 import type { Profile, WorkoutPlan } from '../types';
@@ -111,7 +111,7 @@ export default function WorkoutHub({ musculacaoPlan, cardioPlan, modalidadePlan,
     const categories = [
         {
             id: 'musculacao' as Category,
-            icon: '💪',
+            icon: <Dumbbell size={26} />,
             label: 'Musculação',
             desc: 'Força, hipertrofia e definição',
             plan: musculacaoPlan,
@@ -121,7 +121,7 @@ export default function WorkoutHub({ musculacaoPlan, cardioPlan, modalidadePlan,
         },
         {
             id: 'cardio' as Category,
-            icon: '🏃',
+            icon: <Activity size={26} />,
             label: 'Cardio',
             desc: 'Resistência, queima e saúde',
             plan: cardioPlan,
@@ -131,7 +131,7 @@ export default function WorkoutHub({ musculacaoPlan, cardioPlan, modalidadePlan,
         },
         {
             id: 'modalidade' as Category,
-            icon: '🎯',
+            icon: <Trophy size={26} />,
             label: 'Modalidade',
             desc: 'Esportes, artes e atividades',
             plan: modalidadePlan,
@@ -228,8 +228,11 @@ export default function WorkoutHub({ musculacaoPlan, cardioPlan, modalidadePlan,
                     >
                         {/* Icon */}
                         <div
-                            className="w-14 h-14 rounded-2xl flex items-center justify-center text-3xl shrink-0"
-                            style={{ backgroundColor: `rgba(${colorRgb}, 0.12)` }}
+                            className="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0"
+                            style={{
+                                background: `linear-gradient(135deg, rgba(${colorRgb}, 0.22), rgba(${colorRgb}, 0.07))`,
+                                color,
+                            }}
                         >
                             {icon}
                         </div>

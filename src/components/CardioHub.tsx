@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Zap, Clock, Flame, MapPin, TrendingUp, Timer, Plus, Loader2, Check } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Zap, Clock, Flame, MapPin, TrendingUp, Timer, Plus, Loader2, Check, Activity, Bike, Waves, Gauge, Navigation, Anchor, Music, MoreHorizontal } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { getLocalYYYYMMDD } from '../lib/dateUtils';
 import { aiService } from '../services/aiService';
@@ -8,15 +8,15 @@ import type { Profile, WorkoutPlan, CardioSession } from '../types';
 import CardioSessionTracker from './CardioSessionTracker';
 
 const CARDIO_TYPES = [
-    { id: 'corrida', label: 'Corrida', icon: '🏃' },
-    { id: 'bike', label: 'Bicicleta', icon: '🚴' },
-    { id: 'natacao', label: 'Natação', icon: '🏊' },
-    { id: 'jump', label: 'Jump', icon: '🦘' },
-    { id: 'eliptico', label: 'Elíptico', icon: '⚡' },
-    { id: 'caminhada', label: 'Caminhada', icon: '🚶' },
-    { id: 'remo', label: 'Remo', icon: '🚣' },
-    { id: 'aerobica', label: 'Aeróbica', icon: '💃' },
-    { id: 'outro', label: 'Outro', icon: '🏋️' },
+    { id: 'corrida', label: 'Corrida', icon: <Activity size={18} /> },
+    { id: 'bike', label: 'Bicicleta', icon: <Bike size={18} /> },
+    { id: 'natacao', label: 'Natação', icon: <Waves size={18} /> },
+    { id: 'jump', label: 'Jump', icon: <Zap size={18} /> },
+    { id: 'eliptico', label: 'Elíptico', icon: <Gauge size={18} /> },
+    { id: 'caminhada', label: 'Caminhada', icon: <Navigation size={18} /> },
+    { id: 'remo', label: 'Remo', icon: <Anchor size={18} /> },
+    { id: 'aerobica', label: 'Aeróbica', icon: <Music size={18} /> },
+    { id: 'outro', label: 'Outro', icon: <MoreHorizontal size={18} /> },
 ];
 
 const WEEK_SHORT = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
@@ -126,7 +126,7 @@ export default function CardioHub({ plan, profile, onBack, onPlanChange, onCompl
                     <ChevronLeft size={20} />
                 </button>
                 <div>
-                    <p className="text-[10px] uppercase tracking-widest font-bold text-accent">🏃 Cardio</p>
+                    <p className="text-[10px] uppercase tracking-widest font-bold text-accent flex items-center gap-1"><Activity size={10} /> Cardio</p>
                     <h2 className="font-bold text-base text-text-main">
                         {view === 'menu' ? 'Cardio' : 'Criar Plano de Cardio'}
                     </h2>
@@ -194,7 +194,17 @@ export default function CardioHub({ plan, profile, onBack, onPlanChange, onCompl
                                                 border: `1px solid ${sessionType === t.id ? 'rgba(var(--accent-rgb),0.3)' : 'var(--border-main)'}`,
                                             }}
                                         >
-                                            <span className="text-xl">{t.icon}</span>
+                                            <div
+                                                className="w-9 h-9 rounded-xl flex items-center justify-center"
+                                                style={{
+                                                    background: sessionType === t.id
+                                                        ? 'linear-gradient(135deg, rgba(var(--accent-rgb),0.22), rgba(var(--accent-rgb),0.08))'
+                                                        : 'rgba(var(--text-main-rgb),0.06)',
+                                                    color: sessionType === t.id ? 'var(--accent)' : 'var(--text-muted)',
+                                                }}
+                                            >
+                                                {t.icon}
+                                            </div>
                                             <span className="text-[10px] font-semibold" style={{ color: sessionType === t.id ? 'var(--accent)' : 'var(--text-muted)' }}>{t.label}</span>
                                         </button>
                                     ))}
@@ -231,7 +241,10 @@ export default function CardioHub({ plan, profile, onBack, onPlanChange, onCompl
                                     <div className="flex flex-col gap-2">
                                         {sessions.slice(0, 5).map(s => (
                                             <div key={s.id} className="flex items-center gap-3 p-3 rounded-xl bg-card border" style={{ borderColor: 'var(--border-main)' }}>
-                                                <span className="text-xl">{CARDIO_TYPES.find(t => t.id === s.cardio_type)?.icon ?? '🏃'}</span>
+                                                <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                                                    style={{ backgroundColor: 'rgba(var(--accent-rgb),0.1)', color: 'var(--accent)' }}>
+                                                    {CARDIO_TYPES.find(t => t.id === s.cardio_type)?.icon ?? <Activity size={16} />}
+                                                </div>
                                                 <div className="flex-1 min-w-0">
                                                     <p className="text-sm font-semibold text-text-main capitalize">{s.cardio_type ?? 'Cardio'}</p>
                                                     <p className="text-xs text-text-muted">{s.session_date}</p>
@@ -260,7 +273,17 @@ export default function CardioHub({ plan, profile, onBack, onPlanChange, onCompl
                                             backgroundColor: planType === t.id ? 'rgba(var(--accent-rgb),0.12)' : 'rgba(var(--text-main-rgb),0.04)',
                                             border: `1px solid ${planType === t.id ? 'rgba(var(--accent-rgb),0.3)' : 'var(--border-main)'}`,
                                         }}>
-                                        <span className="text-2xl">{t.icon}</span>
+                                        <div
+                                            className="w-9 h-9 rounded-xl flex items-center justify-center"
+                                            style={{
+                                                background: planType === t.id
+                                                    ? 'linear-gradient(135deg, rgba(var(--accent-rgb),0.22), rgba(var(--accent-rgb),0.08))'
+                                                    : 'rgba(var(--text-main-rgb),0.06)',
+                                                color: planType === t.id ? 'var(--accent)' : 'var(--text-muted)',
+                                            }}
+                                        >
+                                            {t.icon}
+                                        </div>
                                         <span className="text-[10px] font-semibold" style={{ color: planType === t.id ? 'var(--accent)' : 'var(--text-muted)' }}>{t.label}</span>
                                         {planType === t.id && <Check size={12} className="text-accent" />}
                                     </button>

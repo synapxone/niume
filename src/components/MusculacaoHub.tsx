@@ -216,7 +216,7 @@ export default function MusculacaoHub({ plan, profile, onBack, onPlanChange, onC
                     <ChevronLeft size={20} />
                 </button>
                 <div>
-                    <p className="text-[10px] uppercase tracking-widest font-bold text-primary">💪 Musculação</p>
+                    <p className="text-[10px] uppercase tracking-widest font-bold text-primary flex items-center gap-1"><Dumbbell size={10} /> Musculação</p>
                     <h2 className="font-bold text-base text-text-main">
                         {view === 'menu' ? 'Como quer treinar?' :
                             view === 'template' ? 'Treino Pronto' :

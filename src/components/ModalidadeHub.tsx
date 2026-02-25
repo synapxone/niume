@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, Plus, Loader2, X, ChevronRight, Sparkles, PenLine } from 'lucide-react';
+import { ChevronLeft, Plus, Loader2, X, ChevronRight, Sparkles, PenLine, Play, Trophy } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { aiService } from '../services/aiService';
 import { moderateContent } from '../services/moderationService';
@@ -146,7 +146,7 @@ export default function ModalidadeHub({ plan, profile, onBack, onPlanChange, onC
                     <ChevronLeft size={20} />
                 </button>
                 <div className="flex-1">
-                    <p className="text-[10px] uppercase tracking-widest font-bold text-proteina">🎯 Modalidade</p>
+                    <p className="text-[10px] uppercase tracking-widest font-bold text-proteina flex items-center gap-1"><Trophy size={10} /> Modalidade</p>
                     <h2 className="font-bold text-base text-text-main">
                         {view === 'grid' ? 'Escolha uma modalidade' :
                             view === 'add' ? 'Nova Modalidade' :
@@ -182,7 +182,10 @@ export default function ModalidadeHub({ plan, profile, onBack, onPlanChange, onC
                                             className="flex flex-col items-center gap-2 p-4 rounded-2xl transition-all"
                                             style={{ backgroundColor: 'rgba(var(--text-main-rgb),0.04)', border: '1px solid var(--border-main)' }}
                                         >
-                                            <span className="text-3xl">{m.icon}</span>
+                                            <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl"
+                                                style={{ background: 'linear-gradient(135deg, rgba(var(--proteina-rgb),0.15), rgba(var(--text-main-rgb),0.06))' }}>
+                                                {m.icon}
+                                            </div>
                                             <p className="text-xs font-semibold text-text-main text-center leading-tight">{m.name}</p>
                                         </motion.button>
                                     ))}
@@ -208,7 +211,10 @@ export default function ModalidadeHub({ plan, profile, onBack, onPlanChange, onC
                             {/* Hero card */}
                             <div className="rounded-2xl p-6 flex flex-col items-center text-center gap-3"
                                 style={{ background: 'linear-gradient(135deg, rgba(var(--proteina-rgb),0.1), rgba(var(--primary-rgb),0.05))', border: '1px solid rgba(var(--proteina-rgb),0.15)' }}>
-                                <span className="text-5xl">{selectedModality.icon}</span>
+                                <div className="w-20 h-20 rounded-3xl flex items-center justify-center text-4xl"
+                                    style={{ background: 'linear-gradient(135deg, rgba(var(--proteina-rgb),0.2), rgba(var(--primary-rgb),0.08))' }}>
+                                    {selectedModality.icon}
+                                </div>
                                 <div>
                                     <h3 className="text-xl font-extrabold text-text-main">{selectedModality.name}</h3>
                                     {selectedModality.description && (
@@ -225,8 +231,8 @@ export default function ModalidadeHub({ plan, profile, onBack, onPlanChange, onC
                                     style={{ background: 'linear-gradient(135deg, rgba(var(--primary-rgb),0.12), rgba(var(--primary-rgb),0.04))', border: '1px solid rgba(var(--primary-rgb),0.25)' }}
                                 >
                                     <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-                                        style={{ backgroundColor: 'var(--primary)' }}>
-                                        <span className="text-white font-bold text-sm">▶</span>
+                                        style={{ background: 'linear-gradient(135deg, var(--primary), var(--primary-hover))' }}>
+                                        <Play size={16} className="text-white" fill="white" />
                                     </div>
                                     <div className="flex-1">
                                         <p className="text-xs text-primary font-bold uppercase tracking-widest">Plano Ativo</p>
