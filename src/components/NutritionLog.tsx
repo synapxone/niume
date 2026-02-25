@@ -938,6 +938,11 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
     const fatGoal = Math.round((goal * 0.3) / 9);
 
     const circumference = 2 * Math.PI * 72;
+    const waterCircumference = 2 * Math.PI * 79;
+    const waterGoalMl = profile.weight * 35;
+    const goalCups = Math.ceil(waterGoalMl / 250);
+    const waterPct = Math.min((waterCups / Math.max(goalCups, 1)) * 100, 100);
+
     // Pcts for the segmented ring, clamped so they never exceed 100% combined.
     const protItemPct = Math.min(((totals.protein * 4) / goal) * 100, 100);
     const carbItemPct = Math.min(((totals.carbs * 4) / goal) * 100, 100 - protItemPct);
@@ -952,9 +957,6 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
             </div>
         );
     }
-
-    const waterGoalMl = profile.weight * 35;
-    const goalCups = Math.ceil(waterGoalMl / 250);
 
     const handleCupClick = (idx: number) => {
         setWaterCups(prev => {
@@ -1017,6 +1019,19 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
                         <svg width="160" height="160" viewBox="0 0 160 160" className="transform -rotate-90">
                             {/* Background Track */}
                             <circle cx="80" cy="80" r="72" fill="none" stroke="rgba(var(--text-main-rgb), 0.05)" strokeWidth="12" />
+
+                            {/* Water Outer Ring (Thin Blue Line) */}
+                            <motion.circle
+                                cx="80" cy="80" r="79" fill="none"
+                                stroke="#3b82f6"
+                                strokeWidth="2"
+                                strokeDasharray={waterCircumference}
+                                initial={{ strokeDashoffset: waterCircumference }}
+                                animate={{ strokeDashoffset: waterCircumference - (waterPct / 100) * waterCircumference }}
+                                transition={{ duration: 1.5, ease: "easeOut" }}
+                                strokeLinecap="round"
+                                style={{ opacity: 0.6 }}
+                            />
 
                             {totals.calories > goal ? (
                                 /* Over goal - show failure gradient */
