@@ -415,7 +415,6 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
 
     async function onBarcodeScan(barcode: string) {
         setAnalyzeLoading(true);
-        setModalMode('manual');
         const toastId = toast.loading('Buscando produto no Open Food Facts...');
         try {
             const result = await aiService.fetchFromOpenFoodFacts(barcode);
@@ -429,8 +428,9 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
                 setUnitOptions(['unidade', 'gramas', 'embalagem']);
                 setFormUnit('gramas');
                 toast.success('Produto encontrado!', { id: toastId });
+                setModalMode('manual'); // Só muda para o form se encontrou algo
             } else {
-                toast.error('Produto não encontrado ou sem dados nutricionais.', { id: toastId });
+                toast.error('Produto não encontrado. Tente novamente ou feche o scanner.', { id: toastId });
             }
         } catch (e) {
             toast.error('Erro ao acessar banco de dados de produtos.', { id: toastId });
@@ -997,8 +997,8 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
                                 className={`relative w-11 h-11 rounded-xl flex items-center justify-center transition-all duration-300 overflow-hidden ${isSelected
                                     ? 'border-blue-500/40 text-blue-400 shadow-[0_5px_15px_rgba(59,130,246,0.1)]'
                                     : isNext
-                                        ? 'bg-blue-500/5 border-blue-500/20 text-text-muted hover:border-blue-500/30'
-                                        : 'bg-blue-500/2 border-blue-500/10 text-text-muted/20'
+                                        ? 'bg-white/5 border-white/10 text-text-muted hover:border-white/20'
+                                        : 'bg-white/[0.02] border-white/5 text-text-muted/10'
                                     } border`}
                             >
                                 {/* Animated Liquid Fill */}

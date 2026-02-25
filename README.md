@@ -445,3 +445,7 @@ O niume utiliza **Capacitor** para rodar nativamente em iOS e Android. Para mant
   - **Legibilidade:** Corrigida a cor do texto das sugestões que estava invisível no tema claro (agora usa `var(--text-main)`).
   - **Segurança de APIs:** Migração completa das chaves de IA (Gemini/OpenAI) para o ambiente seguro das **Supabase Edge Functions**. Chaves não são mais expostas no frontend nem enviadas em commits.
   - **Manutenção:** Atualização das tags de versão em todo o sistema.
+- **Refinamento de UI e UX de Nutrição (v1.3.3):**
+  - **Hidratação:** Design dos copos de água mais sutil (tons de cinza claro e linhas finas) para um visual mais limpo.
+  - **Scanner de Código de Barras (Resiliência):** A câmera agora permanece aberta em caso de produto não encontrado ou erro de leitura, permitindo que o usuário decida se deseja tentar novamente ou fechar manualmente.
+  - **Cálculo Local (Hotfix):** Normalização de strings de unidades (g, gramas, oz) para garantir consistência no cálculo de macros instantâneo.
