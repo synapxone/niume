@@ -79,8 +79,42 @@ export type WorkoutPlan = {
 };
 
 // =====================================================
-// COMMUNITY
+// COMMUNITY / SOCIAL
 // =====================================================
+
+export type ReactionType = 'parabens' | 'arrasou' | 'nao_desista';
+
+export type Follow = {
+  id: string;
+  follower_id: string;
+  following_id: string;
+  status: 'pending' | 'accepted';
+  created_at: string;
+};
+
+export type CommunityReaction = {
+  id: string;
+  user_id: string;
+  target_id: string;
+  target_type: 'workout' | 'cardio';
+  reaction_type: ReactionType;
+  created_at: string;
+};
+
+export type CommunityFeedItem = {
+  id: string;
+  user_id: string;
+  user_first_name: string;
+  activity_type: 'workout' | 'cardio';
+  cardio_type?: string;
+  duration_minutes?: number;
+  total_load_kg?: number;
+  distance_km?: number;
+  calories_burned?: number;
+  created_at: string;
+  reaction_counts: { parabens: number; arrasou: number; nao_desista: number };
+  my_reaction?: ReactionType;
+};
 
 export type Modality = {
   id: string;
@@ -153,6 +187,7 @@ export type Meal = {
   fat: number;
   quantity?: number;
   unit?: string;
+  unit_weight?: number;
   logged_at: string;
 };
 

@@ -54,6 +54,16 @@ export const aiService = {
         return typeof result === 'string' ? result : result.analysis || JSON.stringify(result);
     },
 
+    async moderateProfilePhoto(base64: string, mimeType = 'image/jpeg'): Promise<{ approved: boolean; reason?: string }> {
+        const result = await callAiService('MODERATE_PHOTO', { base64, mimeType });
+        const verdict: string = result?.verdict ?? 'APROVADO';
+        if (verdict.startsWith('BLOQUEADO')) {
+            const reason = verdict.replace(/^BLOQUEADO:\s*/i, '').trim();
+            return { approved: false, reason };
+        }
+        return { approved: true };
+    },
+
     async suggestUnits(food: string): Promise<string[]> {
         const result = await callAiService('SUGGEST_UNITS', { food });
         return result.units || [];
@@ -230,12 +240,27 @@ export const aiService = {
             if (data.status === 1 && data.product) {
                 const p = data.product;
                 const nutrients = p.nutriments;
+
+                // Tenta extrair o peso de uma unidade/porção
+                let unitWeight = 100; // Default
+                if (nutrients.serving_quantity) {
+                    unitWeight = Number(nutrients.serving_quantity);
+                } else if (p.serving_quantity) {
+                    unitWeight = Number(p.serving_quantity);
+                } else if (p.product_quantity) {
+                    // Se não tem porção, mas tem peso total, podemos usar peso total como "unidade" (pacote)
+                    // Mas para biscoitos isso pode ser o erro que o usuário citou.
+                    // No entanto, é melhor ter o peso do pacote do que fixo 100g se o pacote for diferente.
+                    unitWeight = Number(p.product_quantity);
+                }
+
                 return {
                     description: p.product_name || 'Produto desconhecido',
                     calories: Math.round(nutrients['energy-kcal_100g'] || nutrients['energy_100g'] / 4.184 || 0),
                     protein: Math.round(nutrients.proteins_100g || 0),
                     carbs: Math.round(nutrients.carbohydrates_100g || 0),
-                    fat: Math.round(nutrients.fat_100g || 0)
+                    fat: Math.round(nutrients.fat_100g || 0),
+                    unit_weight: unitWeight
                 };
             }
             return null;

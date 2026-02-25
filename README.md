@@ -2,6 +2,10 @@
 
 Aplicativo de fitness pessoal com IA — treinos, nutrição, gamificação e acompanhamento de evolução. (Antigo Personall)
 
+> **v1.7.1** — Foto de perfil com moderação por IA: upload de avatar na tela de perfil; Gemini Vision verifica se a imagem é apropriada antes de salvar (bloqueia nudez, violência, conteúdo perturbador).
+>
+> **v1.7.0** — Comunidade Social: feed de progresso, seguir/ser seguido (mútuo), reações (👏 Parabéns / 🔥 Arrasou / 💪 Não desista), explorar usuários. Menu hamburguer no topo do app.
+>
 > **v1.6.0** — Refatoração de Segurança (Edge Functions), IA Backend, Gamificação Centralizada e Dashboard Real-Time.
 
 ---
@@ -401,7 +405,7 @@ O niume utiliza **Capacitor** para rodar nativamente em iOS e Android. Para mant
   - **Lógica de Salvamento Duplo**: Botão "Salvar Agora" (IA em background) vs "Calcular Nutrientes" (análise instantânea antes de salvar).
   - **Sanidade Nutricional**: Bloqueio automático de quantidades extravagantes (ex: 100 ovos) ou suspeitamente baixas (ex: 1g de arroz).
   - **UX Manual**: Campo de quantidade limpa ao clicar; restauração de seletor de unidade e cards de macros.
-- **SQL Migration**: `migrations/v2_workout_categories.sql` e `migrations/v3_meal_details.sql` (novas colunas e tabelas).
+- **SQL Migration**: `migrations/v2_workout_categories.sql`, `migrations/v3_meal_details.sql`, `migrations/v4_exercise_seed.sql` e `migrations/v5_community.sql` (novas colunas, tabelas e seeds).
 
 **Arquivos criados/modificados**: `WorkoutHub.tsx`, `MusculacaoHub.tsx`, `CardioHub.tsx`, `ModalidadeHub.tsx`, `WeeklyPlanView.tsx`, `CardioSessionTracker.tsx`, `ExercisePicker.tsx`, `moderationService.ts`, `NutritionLog.tsx`
 

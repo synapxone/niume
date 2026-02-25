@@ -55,6 +55,10 @@ export default function ProfileView({ profile, onSignOut, onRefresh }: Props) {
     const [progSaving, setProgSaving] = useState(false);
     const photoRef = useRef<HTMLInputElement>(null);
 
+    // Avatar photo upload
+    const [avatarUploading, setAvatarUploading] = useState(false);
+    const avatarRef = useRef<HTMLInputElement>(null);
+
     // View full photo
     const [viewEntry, setViewEntry] = useState<ProgressEntry | null>(null);
 
@@ -63,6 +67,44 @@ export default function ProfileView({ profile, onSignOut, onRefresh }: Props) {
 
     // Theme state
     const [isLightMode, setIsLightMode] = useState(() => document.documentElement.classList.contains('light'));
+
+    async function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        if (file.size > 5 * 1024 * 1024) {
+            toast.error('Foto muito grande. Máximo 5 MB.');
+            return;
+        }
+        setAvatarUploading(true);
+        try {
+            const reader = new FileReader();
+            const base64: string = await new Promise((res, rej) => {
+                reader.onload = () => res((reader.result as string).split(',')[1]);
+                reader.onerror = rej;
+                reader.readAsDataURL(file);
+            });
+            const moderation = await aiService.moderateProfilePhoto(base64, file.type);
+            if (!moderation.approved) {
+                toast.error(`Foto não permitida: ${moderation.reason ?? 'conteúdo inapropriado'}`);
+                return;
+            }
+            const ext = file.name.split('.').pop() || 'jpg';
+            const filename = `${profile.id}/${Date.now()}.${ext}`;
+            const { data: uploadData, error: uploadErr } = await supabase.storage
+                .from('profile-photos')
+                .upload(filename, file, { upsert: true });
+            if (uploadErr || !uploadData) throw uploadErr ?? new Error('Upload falhou');
+            const { data: urlData } = supabase.storage.from('profile-photos').getPublicUrl(uploadData.path);
+            await supabase.from('profiles').update({ photo_url: urlData.publicUrl }).eq('id', profile.id);
+            toast.success('Foto de perfil atualizada!');
+            onRefresh();
+        } catch (err: any) {
+            toast.error(err?.message ?? 'Erro ao enviar foto.');
+        } finally {
+            setAvatarUploading(false);
+            if (avatarRef.current) avatarRef.current.value = '';
+        }
+    }
 
     async function toggleTheme() {
         const nextLight = !isLightMode;
@@ -268,13 +310,33 @@ export default function ProfileView({ profile, onSignOut, onRefresh }: Props) {
         <div className="px-4 py-6 flex flex-col gap-6 max-w-lg mx-auto pb-24">
             {/* Avatar */}
             <div className="flex flex-col items-center gap-4 py-4">
-                {profile.photo_url ? (
-                    <img src={profile.photo_url} alt="Foto" className="w-24 h-24 rounded-full object-cover ring-2 ring-indigo-500/50 shadow-lg" />
-                ) : (
-                    <div className="w-24 h-24 rounded-full flex items-center justify-center text-3xl font-semibold text-white shadow-xl bg-gradient-to-br from-indigo-500 to-purple-600 ring-2 ring-indigo-500/30">
-                        {profile.name.charAt(0).toUpperCase()}
-                    </div>
-                )}
+                <div className="relative group">
+                    {profile.photo_url ? (
+                        <img src={profile.photo_url} alt="Foto" className="w-24 h-24 rounded-full object-cover ring-2 ring-indigo-500/50 shadow-lg" />
+                    ) : (
+                        <div className="w-24 h-24 rounded-full flex items-center justify-center text-3xl font-semibold text-white shadow-xl bg-gradient-to-br from-indigo-500 to-purple-600 ring-2 ring-indigo-500/30">
+                            {profile.name.charAt(0).toUpperCase()}
+                        </div>
+                    )}
+                    <button
+                        onClick={() => avatarRef.current?.click()}
+                        disabled={avatarUploading}
+                        className="absolute inset-0 rounded-full flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity"
+                        title="Alterar foto de perfil"
+                    >
+                        {avatarUploading
+                            ? <Loader2 size={22} className="text-white animate-spin" />
+                            : <Camera size={22} className="text-white" />
+                        }
+                    </button>
+                    <input
+                        ref={avatarRef}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleAvatarUpload}
+                    />
+                </div>
                 <div className="text-center">
                     <h2 className="text-lg font-bold text-text-main tracking-tight">{profile.name}</h2>
                     <p className="text-primary text-[11px] uppercase tracking-wider font-medium mt-0.5">{GOAL_LABELS[profile.goal] || profile.goal}</p>

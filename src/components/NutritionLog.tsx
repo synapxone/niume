@@ -801,6 +801,7 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
             fat: overrides?.fat ?? formFat,
             quantity: numQty,
             unit: selectedUnit,
+            unit_weight: baseNutrients?.unit_weight || 100,
             logged_at: new Date().toISOString(),
         };
 
@@ -908,7 +909,7 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
             toast.success('Refeição atualizada!');
             const updated = meals.map((m) =>
                 m.id === selectedMeal.id
-                    ? { ...m, description: editDesc, calories: editCal, protein: editProt, carbs: editCarbs, fat: editFat, quantity: Number(editQty), unit: editUnit }
+                    ? { ...m, description: editDesc, calories: editCal, protein: editProt, carbs: editCarbs, fat: editFat, quantity: Number(editQty), unit: editUnit, unit_weight: selectedMeal.unit_weight }
                     : m
             );
             await updateDailyNutrition(updated);
@@ -1668,6 +1669,12 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
                                                     </select>
                                                 </div>
                                             </div>
+                                            {formUnit === 'unidade' && baseNutrients?.unit_weight && baseNutrients.unit_weight !== 100 && (
+                                                <p className="text-[10px] text-text-muted mt-1 px-1 flex items-center gap-1">
+                                                    <TrendingUp size={10} className="text-primary" />
+                                                    <span>1 unidade considerada como <b>{baseNutrients.unit_weight}g</b></span>
+                                                </p>
+                                            )}
                                         </div>
                                     )}
 
@@ -2032,6 +2039,12 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
                                             </select>
                                         </div>
                                     </div>
+                                    {editUnit === 'unidade' && selectedMeal?.unit_weight && selectedMeal.unit_weight !== 100 && (
+                                        <p className="text-[10px] text-text-muted mt-1 px-1 flex items-center gap-1">
+                                            <TrendingUp size={10} className="text-primary" />
+                                            <span>1 unidade considerada como <b>{selectedMeal.unit_weight}g</b></span>
+                                        </p>
+                                    )}
 
                                     {/* Macro inputs */}
                                     <div className="grid grid-cols-2 gap-3">

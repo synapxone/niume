@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Home, Dumbbell, Apple, Trophy, User, Flame, Zap, BarChart3, TrendingUp, ChevronRight, CheckCircle2, BedDouble, ChevronUp } from 'lucide-react';
+import { Home, Dumbbell, Apple, Trophy, User, Flame, Zap, BarChart3, TrendingUp, ChevronRight, CheckCircle2, BedDouble, ChevronUp, Menu, X, Users, LogOut, UserCheck } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { getLocalYYYYMMDD } from '../lib/dateUtils';
 import type { Profile, WorkoutPlan, Gamification, WorkoutCategory } from '../types';
@@ -10,6 +10,7 @@ import GamificationView from './Gamification';
 import ProfileView from './ProfileView';
 import AIAssistant from './AIAssistant';
 import DailyRewardModal from './DailyRewardModal';
+import CommunityHub from './CommunityHub';
 
 interface Props {
     profile: Profile;
@@ -77,6 +78,9 @@ export default function Dashboard({ profile, musculacaoPlan, cardioPlan, modalid
     const [totalLoad, setTotalLoad] = useState(0);
     const [freqTrend, setFreqTrend] = useState(0);
     const [weeklyPerf, setWeeklyPerf] = useState<number[]>([]);
+    const [showMenu, setShowMenu] = useState(false);
+    const [showCommunity, setShowCommunity] = useState(false);
+    const [pendingRequests, setPendingRequests] = useState(0);
 
     useEffect(() => {
         const todayStr = getLocalYYYYMMDD();
@@ -86,6 +90,16 @@ export default function Dashboard({ profile, musculacaoPlan, cardioPlan, modalid
             localStorage.setItem('lastDailyRewardCheck', todayStr);
         }
     }, []);
+
+    // Load pending follow-request count for the hamburger badge
+    useEffect(() => {
+        supabase
+            .from('follows')
+            .select('id', { count: 'exact', head: true })
+            .eq('following_id', profile.id)
+            .eq('status', 'pending')
+            .then(({ count }) => setPendingRequests(count ?? 0));
+    }, [profile.id]);
 
     useEffect(() => {
         sessionStorage.setItem('activeTab', activeTab);
@@ -167,16 +181,34 @@ export default function Dashboard({ profile, musculacaoPlan, cardioPlan, modalid
     return (
         <div className="min-h-screen flex flex-col font-sans bg-dark text-text-main">
             {/* Top header */}
-            <header className="flex items-center justify-between px-5 pt-20 pb-8 safe-top border-b bg-dark" style={{ borderColor: 'var(--border-main)' }}>
-                <div className="flex items-center gap-2">
-                    <span className="font-['Quicksand'] font-bold text-2xl lowercase text-text-main">niume</span>
-                </div>
-                <div className="flex items-center gap-2">
-                    <span className="text-text-muted text-xs font-medium">{profile.name.split(' ')[0]}</span>
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white shadow-lg shadow-primary/20"
-                        style={{ background: 'linear-gradient(135deg, var(--primary), var(--primary-hover))' }}>
+            <header className="flex items-center justify-between px-5 pt-14 pb-5 safe-top border-b bg-dark" style={{ borderColor: 'var(--border-main)' }}>
+                {/* Hamburger */}
+                <button
+                    onClick={() => setShowMenu(true)}
+                    className="p-2 rounded-xl"
+                    style={{ backgroundColor: 'rgba(var(--text-main-rgb),0.06)' }}
+                    aria-label="Menu"
+                >
+                    <Menu size={20} className="text-text-main" />
+                </button>
+
+                {/* Logo */}
+                <span className="font-['Quicksand'] font-bold text-xl lowercase text-text-main">niume</span>
+
+                {/* Avatar with pending-request dot */}
+                <div className="relative">
+                    <div
+                        className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white shadow-lg shadow-primary/20"
+                        style={{ background: 'linear-gradient(135deg, var(--primary), var(--primary-hover))' }}
+                    >
                         {profile.name.charAt(0).toUpperCase()}
                     </div>
+                    {pendingRequests > 0 && (
+                        <span
+                            className="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full"
+                            style={{ backgroundColor: 'var(--accent)', border: '2px solid var(--bg-main)' }}
+                        />
+                    )}
                 </div>
             </header>
 
@@ -469,6 +501,119 @@ export default function Dashboard({ profile, musculacaoPlan, cardioPlan, modalid
                     })}
                 </div>
             </nav>
+            {/* ── Hamburger Drawer ── */}
+            <AnimatePresence>
+                {showMenu && (
+                    <>
+                        {/* Backdrop */}
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setShowMenu(false)}
+                            className="fixed inset-0 z-[80] bg-black/50 backdrop-blur-sm"
+                        />
+                        {/* Side drawer */}
+                        <motion.div
+                            initial={{ x: '-100%' }}
+                            animate={{ x: 0 }}
+                            exit={{ x: '-100%' }}
+                            transition={{ type: 'spring', damping: 28, stiffness: 280 }}
+                            className="fixed left-0 top-0 bottom-0 z-[90] w-72 flex flex-col bg-card"
+                            style={{ borderRight: '1px solid var(--border-main)' }}
+                        >
+                            {/* Close + user card */}
+                            <div className="px-5 pt-14 pb-5">
+                                <div className="flex justify-end mb-5">
+                                    <button
+                                        onClick={() => setShowMenu(false)}
+                                        className="p-2 rounded-xl"
+                                        style={{ backgroundColor: 'rgba(var(--text-main-rgb),0.06)' }}
+                                    >
+                                        <X size={18} className="text-text-muted" />
+                                    </button>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <div
+                                        className="w-12 h-12 rounded-2xl flex items-center justify-center text-lg font-bold text-white"
+                                        style={{ background: 'linear-gradient(135deg, var(--primary), var(--primary-hover))' }}
+                                    >
+                                        {profile.name.charAt(0).toUpperCase()}
+                                    </div>
+                                    <div>
+                                        <p className="font-bold text-text-main">{profile.name.split(' ')[0]}</p>
+                                        <p className="text-xs text-text-muted">
+                                            Nível {gamification?.level ?? 1} · 🔥 {gamification?.streak_days ?? 0} dias
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="h-px mx-5 mb-2" style={{ backgroundColor: 'var(--border-main)' }} />
+
+                            {/* Menu items */}
+                            <div className="flex flex-col px-3 gap-1 flex-1 pt-2">
+                                <button
+                                    onClick={() => { setShowMenu(false); setShowCommunity(true); }}
+                                    className="flex items-center gap-3 px-4 py-3 rounded-xl transition-colors text-left"
+                                >
+                                    <Users size={20} className="text-primary shrink-0" />
+                                    <span className="font-medium text-sm text-text-main">Comunidade</span>
+                                    {pendingRequests > 0 && (
+                                        <span
+                                            className="ml-auto w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white"
+                                            style={{ backgroundColor: 'var(--accent)' }}
+                                        >
+                                            {pendingRequests}
+                                        </span>
+                                    )}
+                                </button>
+                                <button
+                                    onClick={() => { setShowMenu(false); setActiveTab('profile'); }}
+                                    className="flex items-center gap-3 px-4 py-3 rounded-xl transition-colors text-left"
+                                >
+                                    <UserCheck size={20} className="text-primary shrink-0" />
+                                    <span className="font-medium text-sm text-text-main">Meu Perfil</span>
+                                </button>
+                            </div>
+
+                            {/* Sign out */}
+                            <div className="px-3 pb-10">
+                                <div className="h-px mb-3" style={{ backgroundColor: 'var(--border-main)' }} />
+                                <button
+                                    onClick={() => { setShowMenu(false); onSignOut(); }}
+                                    className="flex items-center gap-3 px-4 py-3 rounded-xl transition-colors w-full text-left"
+                                    style={{ color: 'var(--text-muted)' }}
+                                >
+                                    <LogOut size={18} className="shrink-0" />
+                                    <span className="text-sm">Sair</span>
+                                </button>
+                            </div>
+                        </motion.div>
+                    </>
+                )}
+            </AnimatePresence>
+
+            {/* ── Community Hub overlay ── */}
+            <AnimatePresence>
+                {showCommunity && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 30 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 30 }}
+                        transition={{ duration: 0.22 }}
+                        className="fixed inset-0 z-[100]"
+                        style={{ backgroundColor: 'var(--bg-main)' }}
+                    >
+                        <CommunityHub
+                            profile={profile}
+                            gamification={gamification}
+                            onClose={() => setShowCommunity(false)}
+                            onPendingChange={setPendingRequests}
+                        />
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div >
     );
 }

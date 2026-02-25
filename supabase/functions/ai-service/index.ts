@@ -134,6 +134,17 @@ serve(async (req) => {
                 );
                 result = { verdict: typeof result === 'string' ? result.trim() : 'APROVADO' };
                 break;
+            case 'MODERATE_PHOTO':
+                result = await handleAIRequest(
+                    `Analise esta imagem enviada como foto de perfil de um app fitness. Verifique se a imagem é apropriada: deve ser uma foto aceitável de pessoa ou imagem inofensiva. BLOQUEIE se contiver nudez, conteúdo sexual, violência, gore, conteúdo perturbador ou qualquer conteúdo inapropriado. Responda APENAS com uma linha: APROVADO ou BLOQUEADO: <motivo curto em português>`,
+                    false,
+                    GEMINI_API_KEY,
+                    OPENAI_API_KEY,
+                    payload.base64,
+                    payload.mimeType
+                );
+                result = { verdict: typeof result === 'string' ? result.trim() : 'APROVADO' };
+                break;
             default:
                 throw new Error(`Unknown action: ${action}`);
         }
@@ -238,17 +249,17 @@ function getAnalyzeFoodTextPrompt(description: string) {
     1. SEPARAÇÃO: Se o usuário descrever múltiplos itens, separe-os em itens individuais.
     2. PRATOS COMPOSTOS: Se for um prato conhecido (ex: "strogonoff", "feijoada"), trate como UM ÚNICO item.
     3. VALORES: Forneça os valores nutricionais baseados em 100g para cada item.
-    4. PESO UNITÁRIO: No campo "unit_weight", estime o peso em gramas de uma unidade comum (ex: ovo=50, bombom=20, porção arroz=150).
+    4. PESO UNITÁRIO: No campo "unit_weight", estime o peso em gramas de UMA ÚNICA UNIDADE (ex: um biscoito=12, um bombom=20, um ovo=50). Se for um item que o usuário geralmente come o pacote inteiro pequeno (ex: Barra de proteína), coloque o peso dela (ex: 45). Se for um prato de comida, use o peso de uma porção média (ex: 300). NUNCA coloque o peso de um pacote econômico/grande.
     
     Retorne APENAS um objeto JSON:
     { "items": [{ "description": "Nome", "calories": 100, "protein": 5, "carbs": 20, "fat": 2, "unit_weight": 100 }] }`;
 }
 
 function getAnalyzeFoodPhotoItemsPrompt() {
-    return `Identifique TODOS os alimentos e itens individuais visíveis nesta foto. Para CADA item, estime os valores nutricionais em português.
+    return `Identifique TODOS os alimentos e itens individuais visíveis nesta foto. Para CADA item, estime os valores nutricionais em português brasileiros.
     Retorne APENAS um objeto JSON:
-    { "items": [{ "description": "Nome", "calories": 130, "protein": 2, "carbs": 28, "fat": 0 }] }
-    REGRAS: Liste cada componente individualmente. Estime valores realistas por 100g.`;
+    { "items": [{ "description": "Nome", "calories": 130, "protein": 2, "carbs": 28, "fat": 0, "unit_weight": 100 }] }
+    REGRAS: Liste cada componente individualmente. Estime valores realistas por 100g. No campo "unit_weight", estime o peso de uma unidade comum desse alimento em gramas.`;
 }
 
 function getGenerateWorkoutPrompt(data: any) {
