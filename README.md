@@ -440,4 +440,8 @@ O niume utiliza **Capacitor** para rodar nativamente em iOS e Android. Para mant
 - **OTA Ninja Mode:** Sistema de atualização Over-the-Air self-hosted integrado, permitindo atualizações de código instantâneas e gratuitas via servidor customizado (`synapx.cloud`).
 - **Ajuste de Estilo:** Sobresrita da classe `.pb-8` para `padding-bottom: 1rem` no `index.css`.
 - **Persistência de Treinos (Fix):** Implementado utilitário de data local (`src/lib/dateUtils.ts`) para evitar dessincronização de fuso horário. Adicionada coluna `total_load_kg` no Supabase e carregamento de estatísticas corrigido no `WorkoutDay`.
-
+- **Refinamento de UI e Segurança (v1.3.2):**
+  - **Correção do Dropdown de Nutrição:** Alterado posicionamento de `absolute` para `relative` no dropdown de sugestões de alimentos para evitar que sobreponha os botões de ação ("Buscar"/"Adicionar").
+  - **Legibilidade:** Corrigida a cor do texto das sugestões que estava invisível no tema claro (agora usa `var(--text-main)`).
+  - **Segurança de APIs:** Migração completa das chaves de IA (Gemini/OpenAI) para o ambiente seguro das **Supabase Edge Functions**. Chaves não são mais expostas no frontend nem enviadas em commits.
+  - **Manutenção:** Atualização das tags de versão em todo o sistema.

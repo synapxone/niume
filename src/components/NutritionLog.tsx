@@ -1335,14 +1335,14 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
                                                         animate={{ opacity: 1, y: 0 }}
                                                         exit={{ opacity: 0, y: -4 }}
                                                         transition={{ duration: 0.15 }}
-                                                        className="absolute left-0 right-0 top-full mt-1 rounded-xl overflow-y-auto z-[100] max-h-[220px]"
+                                                        className="relative w-full mt-1 rounded-xl overflow-y-auto z-[100] max-h-[220px]"
                                                         style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-main)', boxShadow: '0 12px 32px rgba(0,0,0,0.5)' }}
                                                     >
                                                         {suggestions.map((item, i) => (
                                                             <button
                                                                 key={i}
                                                                 onMouseDown={(e) => { e.preventDefault(); selectSuggestion(item); }}
-                                                                className="w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:text-white transition-colors"
+                                                                className="w-full text-left px-4 py-2.5 text-sm text-text-main hover:text-white transition-colors"
                                                                 style={{ borderBottom: i < suggestions.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}
                                                                 onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(124,58,237,0.15)')}
                                                                 onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
