@@ -2,7 +2,7 @@
 
 Aplicativo de fitness pessoal com IA — treinos, nutrição, gamificação e acompanhamento de evolução. (Antigo Personall)
 
-> **v1.5.1** — Experiência de Onboarding VIP: Refatoração visual completa, modo claro forçado para legibilidade e estética premium com IA.
+> **v1.5.2** — Correções na Dieta: Precisão de decimais nos macros e paleta de cores mais suave para os gráficos e dashboards.
 
 ---
 
@@ -399,6 +399,13 @@ O niume utiliza **Capacitor** para rodar nativamente em iOS e Android. Para mant
 **Status e Versão Atual:** v1.5.0
 
 ---
+
+### v1.5.2 — Ajustes de Precisão e Estética na Dieta
+- **Precisão Cirúrgica**: Limitada a exibição de macros (Proteínas, Carbos, Gorduras) a apenas uma casa decimal, evitando strings longas de floats.
+- **Paleta de Cores Soft**: Cores dos gráficos de progresso e estatísticas de macros atualizadas para tons mais suaves e pastéis, melhorando o conforto visual e a estética premium.
+- **Sincronização de Cores**: Atualização consistente dos tokens de cores (Primary, Proteina, Carbos, Gordura) em ambos os modos (Claro e Escuro).
+
+**Arquivos modificados**: `NutritionLog.tsx`, `index.css`, `README.md`
 
 ### v1.5.1 — Onboarding Wizard VIP
 - **Estética Premium**: Interface do Onboarding Wizard redesenhada com ícones modernos, layouts espaçosos e elementos de design "high-end".
