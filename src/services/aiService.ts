@@ -1,22 +1,13 @@
-import { geminiService } from './geminiService';
-import { openaiService } from './openaiService';
 import { supabase } from '../lib/supabase';
+import { geminiService } from './geminiService';
 import type { OnboardingData, FoodAnalysis, Profile } from '../types';
 
-// Helper to check OpenAI dynamically
-const hasOpenAI = () => {
-    const hasKey = !!import.meta.env.VITE_OPENAI_API_KEY;
-    if (!hasKey && import.meta.env.PROD) {
-        console.error('AI ERROR: VITE_OPENAI_API_KEY is missing in production build. Check GitHub Secrets.');
-    }
-    return hasKey;
-};
-const hasGemini = () => {
-    const hasKey = !!import.meta.env.VITE_GEMINI_API_KEY;
-    if (!hasKey && import.meta.env.PROD) {
-        console.error('AI ERROR: VITE_GEMINI_API_KEY is missing in production build. Check GitHub Secrets.');
-    }
-    return hasKey;
+const callAiService = async (action: string, payload: any) => {
+    const { data, error } = await supabase.functions.invoke('ai-service', {
+        body: { action, payload }
+    });
+    if (error) throw error;
+    return data;
 };
 
 export const aiService = {
@@ -24,89 +15,41 @@ export const aiService = {
     calculateCalorieGoal: geminiService.calculateCalorieGoal,
 
     async generateWorkoutPlan(data: OnboardingData & { active_days?: string[] }): Promise<any> {
-        try {
-            if (!hasGemini()) throw new Error('GEMINI_KEY_MISSING');
-            return await geminiService.generateWorkoutPlan(data);
-        } catch (e: any) {
-            if (hasOpenAI()) {
-                console.warn('Gemini failed, falling back to OpenAI...', e);
-                return await openaiService.generateWorkoutPlan(data);
-            }
-            throw e;
-        }
+        return await callAiService('GENERATE_WORKOUT', data);
     },
 
     async generateWorkoutSingleDay(profile: Partial<Profile>, dayName: string, availableMinutes: number, location: string, avoidExercises: string[] = []): Promise<any> {
-        try {
-            return await geminiService.generateWorkoutSingleDay(profile, dayName, availableMinutes, location, avoidExercises);
-        } catch (e: any) {
-            if (hasOpenAI()) {
-                console.warn('Gemini failed, falling back to OpenAI...', e);
-                return await openaiService.generateWorkoutSingleDay(profile, dayName, availableMinutes, location, avoidExercises);
-            }
-            throw e;
-        }
+        return await callAiService('GENERATE_WORKOUT_SINGLE', { profile, dayName, availableMinutes, location, avoidExercises });
     },
 
     async generateDietPlan(data: OnboardingData): Promise<any> {
-        try {
-            return await geminiService.generateDietPlan(data);
-        } catch (e: any) {
-            if (hasOpenAI()) {
-                console.warn('Gemini failed, falling back to OpenAI...', e);
-                return await openaiService.generateDietPlan(data);
-            }
-            throw e;
-        }
+        return await callAiService('GENERATE_DIET', data);
     },
 
     async analyzeBodyPhoto(base64: string, mimeType = 'image/jpeg'): Promise<string> {
-        try {
-            return await geminiService.analyzeBodyPhoto(base64, mimeType);
-        } catch (e: any) {
-            if (hasOpenAI()) {
-                console.warn('Gemini failed, falling back to OpenAI...', e);
-                return await openaiService.analyzeBodyPhoto(base64, mimeType);
-            }
-            throw e;
-        }
+        const result = await callAiService('ANALYZE_BODY', { base64, mimeType });
+        return result.analysis || result;
     },
 
     async suggestUnits(food: string): Promise<string[]> {
-        try {
-            return await geminiService.suggestUnits(food);
-        } catch (e: any) {
-            if (hasOpenAI()) {
-                console.warn('Gemini failed, falling back to OpenAI...', e);
-                return await openaiService.suggestUnits(food);
-            }
-            throw e;
-        }
+        // Keeping it local or migrating? Let's migrate for consistency
+        const result = await callAiService('SUGGEST_UNITS', { food });
+        return result.units || [];
     },
 
     async suggestFoods(query: string): Promise<string[]> {
-        try {
-            return await geminiService.suggestFoods(query);
-        } catch (e: any) {
-            if (hasOpenAI()) {
-                console.warn('Gemini failed, falling back to OpenAI...', e);
-                return await openaiService.suggestFoods(query);
-            }
-            throw e;
-        }
+        const result = await callAiService('SUGGEST_FOODS', { query });
+        return result.foods || [];
     },
 
     async analyzeFoodText(description: string): Promise<FoodAnalysis[]> {
         let aiResults: FoodAnalysis[] = [];
         try {
-            aiResults = await geminiService.analyzeFoodText(description);
+            const result = await callAiService('ANALYZE_FOOD_TEXT', { description });
+            aiResults = result.items || [];
         } catch (e: any) {
-            if (hasOpenAI()) {
-                console.warn('Gemini failed, falling back to OpenAI...', e);
-                aiResults = await openaiService.analyzeFoodText(description);
-            } else {
-                throw e;
-            }
+            console.error('AI Service Error:', e);
+            throw e;
         }
 
         const finalResults: FoodAnalysis[] = [];
@@ -152,39 +95,18 @@ export const aiService = {
     },
 
     async analyzeFoodPhoto(base64: string, mimeType = 'image/jpeg'): Promise<FoodAnalysis> {
-        try {
-            return await geminiService.analyzeFoodPhoto(base64, mimeType);
-        } catch (e: any) {
-            if (hasOpenAI()) {
-                console.warn('Gemini failed, falling back to OpenAI...', e);
-                return await openaiService.analyzeFoodPhoto(base64, mimeType);
-            }
-            throw e;
-        }
+        const result = await callAiService('ANALYZE_FOOD_PHOTO', { base64, mimeType });
+        return result.items?.[0] || result;
     },
 
     async analyzeFoodPhotoItems(base64: string, mimeType = 'image/jpeg'): Promise<FoodAnalysis[]> {
-        try {
-            return await geminiService.analyzeFoodPhotoItems(base64, mimeType);
-        } catch (e: any) {
-            if (hasOpenAI()) {
-                console.warn('Gemini failed, trying OpenAI for multi-item analysis...', e);
-                return await openaiService.analyzeFoodPhotoItems(base64, mimeType);
-            }
-            throw e;
-        }
+        const result = await callAiService('ANALYZE_FOOD_PHOTO', { base64, mimeType });
+        return result.items || [];
     },
 
     async getAssistantResponse(userMessage: string, context: string): Promise<string> {
-        try {
-            return await geminiService.getAssistantResponse(userMessage, context);
-        } catch (e: any) {
-            if (hasOpenAI()) {
-                console.warn('Gemini failed, falling back to OpenAI...', e);
-                return await openaiService.getAssistantResponse(userMessage, context);
-            }
-            throw e;
-        }
+        const result = await callAiService('CHAT', { message: userMessage, context });
+        return result.text || result;
     },
 
     async searchFoodDatabase(query: string): Promise<FoodAnalysis[]> {
