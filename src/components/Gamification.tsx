@@ -4,6 +4,8 @@ import { Star, Flame, Dumbbell, UtensilsCrossed, Gift, Lock, CheckCircle, Trendi
 import toast from 'react-hot-toast';
 import { supabase } from '../lib/supabase';
 import { getLocalYYYYMMDD } from '../lib/dateUtils';
+import { aiService } from '../services/aiService';
+import { gamificationService } from '../lib/gamificationService';
 import { calculateEvolutionXP } from '../lib/xpHelpers';
 import { REWARDS_CATALOG, xpForLevel } from '../types';
 import type { Gamification as GamificationType, Profile, Reward } from '../types';
@@ -60,6 +62,8 @@ export default function GamificationView({ gamification, profile, onUpdate }: Pr
     const [showEvoModal, setShowEvoModal] = useState(false);
     const [evoWeight, setEvoWeight] = useState(profile.weight || 70);
     const [evoSaving, setEvoSaving] = useState(false);
+    const [evoPhotoFile, setEvoPhotoFile] = useState<File | null>(null);
+    const [evoPhotoPreview, setEvoPhotoPreview] = useState<string | null>(null);
 
     // Timeline States
     const [timelineView, setTimelineView] = useState<'past' | 'present' | 'future'>('present');
@@ -170,29 +174,86 @@ export default function GamificationView({ gamification, profile, onUpdate }: Pr
         setLoading(null);
     }
 
+    function handleEvoPhotoSelect(e: React.ChangeEvent<HTMLInputElement>) {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setEvoPhotoFile(file);
+        setEvoPhotoPreview(URL.createObjectURL(file));
+    }
+
+    function closeEvoModal() {
+        setShowEvoModal(false);
+        setEvoPhotoFile(null);
+        if (evoPhotoPreview) URL.revokeObjectURL(evoPhotoPreview);
+        setEvoPhotoPreview(null);
+    }
+
     async function handleEvolution() {
         setEvoSaving(true);
         try {
-            // Update weight in profile
-            await supabase.from('profiles').update({ weight: evoWeight }).eq('id', profile.id);
+            let photoUrl = null;
+            let bodyAnalysis = profile.body_analysis;
 
-            // Add a progress entry
-            await supabase.from('progress_entries').insert({
+            // 1. Upload Photo if exists
+            if (evoPhotoFile) {
+                const ext = evoPhotoFile.name.split('.').pop() || 'jpg';
+                const filename = `${profile.id}/evo_${Date.now()}.${ext}`;
+                const { data: uploadData, error: uploadError } = await supabase.storage
+                    .from('progress-photos')
+                    .upload(filename, evoPhotoFile);
+
+                if (uploadError) throw uploadError;
+
+                if (uploadData) {
+                    const { data: urlData } = supabase.storage.from('progress-photos').getPublicUrl(uploadData.path);
+                    photoUrl = urlData.publicUrl;
+
+                    // 2. AI Analysis
+                    try {
+                        const reader = new FileReader();
+                        const base64Promise = new Promise<string>((resolve) => {
+                            reader.onload = () => resolve((reader.result as string).split(',')[1]);
+                            reader.readAsDataURL(evoPhotoFile);
+                        });
+                        const base64 = await base64Promise;
+                        const aiAnalysis = await aiService.analyzeBodyPhoto(base64, evoPhotoFile.type);
+                        if (aiAnalysis) {
+                            bodyAnalysis = aiAnalysis;
+                        }
+                    } catch (aiErr) {
+                        console.error('AI Analysis failed:', aiErr);
+                    }
+                }
+            }
+
+            // 3. Update Weight & Analysis in profile
+            const { error: profileErr } = await supabase.from('profiles').update({
+                weight: evoWeight,
+                body_analysis: bodyAnalysis,
+                updated_at: new Date().toISOString()
+            }).eq('id', profile.id);
+            if (profileErr) throw profileErr;
+
+            // 4. Add a progress entry
+            const { error: progErr } = await supabase.from('progress_entries').insert({
                 user_id: profile.id,
                 date: getLocalYYYYMMDD(),
                 weight: evoWeight,
+                photo_url: photoUrl,
+                notes: evoPhotoFile ? 'Avaliação períódica com foto.' : 'Atualização de peso.'
             });
+            if (progErr) throw progErr;
 
-            // Reward dynamic points (based on month progress)
+            // 5. Reward dynamic points (based on month progress)
             const earnedXP = await calculateEvolutionXP(profile.id);
-            const newPoints = points + earnedXP;
-            await supabase.from('gamification').update({ points: newPoints }).eq('user_id', profile.id);
+            await gamificationService.awardPoints(profile.id, earnedXP);
 
             toast.success(`Evolução registrada! Baseada na sua dedicação, você ganhou +${earnedXP} XP!`);
-            setShowEvoModal(false);
+            closeEvoModal();
             onUpdate();
-        } catch (e) {
-            toast.error('Erro ao registrar evolução.');
+        } catch (e: any) {
+            console.error('Evolution error:', e);
+            toast.error('Erro ao registrar evolução: ' + (e.message || 'Erro desconhecido'));
         } finally {
             setEvoSaving(false);
         }
@@ -628,7 +689,7 @@ export default function GamificationView({ gamification, profile, onUpdate }: Pr
                                 <h3 className="text-xl font-bold text-text-main tracking-tight flex items-center gap-2">
                                     <Sparkles size={20} className="text-primary" /> Registrar Evolução
                                 </h3>
-                                <button onClick={() => setShowEvoModal(false)} disabled={evoSaving} className="text-text-muted hover:text-text-main p-2 -mr-2">
+                                <button onClick={closeEvoModal} disabled={evoSaving} className="text-text-muted hover:text-text-main p-2 -mr-2">
                                     <X size={20} />
                                 </button>
                             </div>
@@ -653,14 +714,30 @@ export default function GamificationView({ gamification, profile, onUpdate }: Pr
                                     </div>
                                 </div>
 
-                                <button
-                                    onClick={() => document.getElementById('evo-photo-upload')?.click()}
-                                    className="w-full h-14 rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 hover:bg-primary/10 transition-colors flex items-center justify-center gap-2 text-primary font-semibold text-sm"
-                                >
-                                    <Camera size={18} />
-                                    Adicionar Foto do Corpo
-                                </button>
-                                <input type="file" id="evo-photo-upload" accept="image/*" className="hidden" />
+                                {evoPhotoPreview ? (
+                                    <div className="relative group">
+                                        <img src={evoPhotoPreview} alt="Preview" className="w-full h-48 rounded-xl object-cover ring-2 ring-primary/20" />
+                                        <button
+                                            onClick={() => {
+                                                setEvoPhotoFile(null);
+                                                if (evoPhotoPreview) URL.revokeObjectURL(evoPhotoPreview);
+                                                setEvoPhotoPreview(null);
+                                            }}
+                                            className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/60 flex items-center justify-center text-white"
+                                        >
+                                            <X size={16} />
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <button
+                                        onClick={() => document.getElementById('evo-photo-upload')?.click()}
+                                        className="w-full h-14 rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 hover:bg-primary/10 transition-colors flex items-center justify-center gap-2 text-primary font-semibold text-sm"
+                                    >
+                                        <Camera size={18} />
+                                        Adicionar Foto do Corpo
+                                    </button>
+                                )}
+                                <input type="file" id="evo-photo-upload" accept="image/*" onChange={handleEvoPhotoSelect} className="hidden" />
                             </div>
 
                             <button

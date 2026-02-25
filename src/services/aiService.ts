@@ -1,6 +1,28 @@
 import { supabase } from '../lib/supabase';
-import { geminiService } from './geminiService';
 import type { OnboardingData, FoodAnalysis, Profile, Modality, CommunityExercise } from '../types';
+
+// Pure calculation logic ported from former geminiService
+function calculateBMR(data: OnboardingData): number {
+    const { weight, height, age, gender } = data;
+    const base = 10 * weight + 6.25 * height - 5 * age;
+    return gender === 'female' ? base - 161 : base + 5;
+}
+
+function calculateTDEE(data: OnboardingData): number {
+    const bmr = calculateBMR(data);
+    const multipliers: Record<string, number> = {
+        sedentary: 1.2, light: 1.375, moderate: 1.55, active: 1.725, very_active: 1.9,
+    };
+    return Math.round(bmr * (multipliers[data.activity_level] || 1.55));
+}
+
+function calculateCalorieGoal(data: OnboardingData): number {
+    const tdee = calculateTDEE(data);
+    if (data.goal === 'lose_weight') return Math.max(1200, tdee - 500);
+    if (data.goal === 'gain_weight') return tdee + 500;
+    if (data.goal === 'gain_muscle') return tdee + 300;
+    return tdee;
+}
 
 const callAiService = async (action: string, payload: any) => {
     const { data, error } = await supabase.functions.invoke('ai-service', {
@@ -11,8 +33,7 @@ const callAiService = async (action: string, payload: any) => {
 };
 
 export const aiService = {
-    // Utility from GeminiService (pure logic)
-    calculateCalorieGoal: geminiService.calculateCalorieGoal,
+    calculateCalorieGoal,
 
     async generateWorkoutPlan(data: OnboardingData & { active_days?: string[] }): Promise<any> {
         return await callAiService('GENERATE_WORKOUT', data);
@@ -23,16 +44,17 @@ export const aiService = {
     },
 
     async generateDietPlan(data: OnboardingData): Promise<any> {
-        return await callAiService('GENERATE_DIET', data);
+        // We pass the calculated goal to the AI to ensure consistency
+        const daily_calorie_goal = calculateCalorieGoal(data);
+        return await callAiService('GENERATE_DIET', { ...data, daily_calorie_goal });
     },
 
     async analyzeBodyPhoto(base64: string, mimeType = 'image/jpeg'): Promise<string> {
         const result = await callAiService('ANALYZE_BODY', { base64, mimeType });
-        return result.analysis || result;
+        return typeof result === 'string' ? result : result.analysis || JSON.stringify(result);
     },
 
     async suggestUnits(food: string): Promise<string[]> {
-        // Keeping it local or migrating? Let's migrate for consistency
         const result = await callAiService('SUGGEST_UNITS', { food });
         return result.units || [];
     },
@@ -54,7 +76,6 @@ export const aiService = {
 
         const finalResults: FoodAnalysis[] = [];
         for (const item of aiResults) {
-            // Check if this specific item exists in our database
             const { data: dbItem, error } = await supabase
                 .from('food_database')
                 .select('*')
@@ -63,7 +84,6 @@ export const aiService = {
                 .maybeSingle();
 
             if (dbItem && !error) {
-                // Use database values if available
                 finalResults.push({
                     description: dbItem.name,
                     calories: dbItem.calories,
@@ -73,7 +93,6 @@ export const aiService = {
                     unit_weight: Number(dbItem.unit_weight || 100)
                 });
             } else {
-                // Item not in database. Save it to enrich the database
                 if (item.calories > 0 || item.protein > 0 || item.carbs > 0 || item.fat > 0) {
                     try {
                         await supabase.from('food_database').insert({
@@ -108,12 +127,11 @@ export const aiService = {
 
     async getAssistantResponse(userMessage: string, context: string): Promise<string> {
         const result = await callAiService('CHAT', { message: userMessage, context });
-        return result.text || result;
+        return result.text || (typeof result === 'string' ? result : JSON.stringify(result));
     },
 
     async searchFoodDatabase(query: string): Promise<FoodAnalysis[]> {
         try {
-            // Searched by name, which often includes brands like 'Nestlé', 'Sadia', etc.
             const { data, error } = await supabase
                 .from('food_database')
                 .select('*')
@@ -134,7 +152,6 @@ export const aiService = {
             return [];
         }
     },
-
 
     async generateWorkoutFromTemplate(
         profile: Partial<Profile>,
@@ -228,3 +245,4 @@ export const aiService = {
         }
     }
 };
+

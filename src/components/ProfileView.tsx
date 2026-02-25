@@ -58,6 +58,9 @@ export default function ProfileView({ profile, onSignOut, onRefresh }: Props) {
     // View full photo
     const [viewEntry, setViewEntry] = useState<ProgressEntry | null>(null);
 
+    // Reset account confirm
+    const [showResetConfirm, setShowResetConfirm] = useState(false);
+
     // Theme state
     const [isLightMode, setIsLightMode] = useState(() => document.documentElement.classList.contains('light'));
 
@@ -83,8 +86,6 @@ export default function ProfileView({ profile, onSignOut, onRefresh }: Props) {
     }
 
     async function handleResetAccount() {
-        if (!confirm('Toda a sua evolução, fotos, refeições e treinos serão apagados para sempre. Tem certeza que deseja reiniciar do zero?')) return;
-
         setLoading(true);
         try {
             const t1 = supabase.from('workout_plans').delete().eq('user_id', profile.id);
@@ -102,6 +103,7 @@ export default function ProfileView({ profile, onSignOut, onRefresh }: Props) {
         } catch {
             toast.error('Erro ao excluir dados da conta.');
             setLoading(false);
+            setShowResetConfirm(false);
         }
     }
 
@@ -429,13 +431,62 @@ export default function ProfileView({ profile, onSignOut, onRefresh }: Props) {
             {/* Reset account */}
             <div className="flex justify-center mt-6">
                 <button
-                    onClick={handleResetAccount}
+                    onClick={() => setShowResetConfirm(true)}
                     className="flex items-center gap-1.5 text-xs text-text-muted hover:text-red-400 font-medium transition-colors"
                 >
                     <AlertTriangle size={14} />
                     Reiniciar Conta (Apagar Tudo)
                 </button>
             </div>
+
+            {/* Account Reset Confirmation Modal */}
+            <AnimatePresence>
+                {showResetConfirm && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm"
+                        onClick={() => !loading && setShowResetConfirm(false)}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            className="bg-card border p-6 rounded-3xl w-full max-w-sm flex flex-col gap-6 shadow-2xl"
+                            style={{ borderColor: 'var(--border-main)' }}
+                            onClick={e => e.stopPropagation()}
+                        >
+                            <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center mx-auto mb-2">
+                                <AlertTriangle size={32} className="text-red-500" />
+                            </div>
+                            <div className="text-center">
+                                <h3 className="text-xl font-bold text-text-main mb-2">Tem certeza?</h3>
+                                <p className="text-text-muted text-sm leading-relaxed">
+                                    Toda a sua evolução, fotos, refeições e treinos serão apagados <span className="text-red-400 font-bold">para sempre</span>. Esta ação não pode ser desfeita.
+                                </p>
+                            </div>
+
+                            <div className="flex flex-col gap-3">
+                                <button
+                                    onClick={handleResetAccount}
+                                    disabled={loading}
+                                    className="w-full py-4 rounded-2xl bg-red-500 hover:bg-red-600 text-white font-bold transition-colors flex items-center justify-center gap-2"
+                                >
+                                    {loading ? <Loader2 size={18} className="animate-spin" /> : 'Sim, apagar tudo'}
+                                </button>
+                                <button
+                                    onClick={() => setShowResetConfirm(false)}
+                                    disabled={loading}
+                                    className="w-full py-4 rounded-2xl bg-text-main/10 hover:bg-text-main/15 text-text-main font-semibold transition-colors"
+                                >
+                                    Cancelar
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             {/* ===== EDIT PROFILE MODAL ===== */}
             <AnimatePresence>

@@ -26,7 +26,7 @@ serve(async (req) => {
                 break;
             case 'ANALYZE_FOOD_PHOTO':
                 result = await handleAIRequest(
-                    getAnalyzeFoodPhotoPrompt(),
+                    getAnalyzeFoodPhotoItemsPrompt(),
                     true,
                     GEMINI_API_KEY,
                     OPENAI_API_KEY,
@@ -70,7 +70,7 @@ serve(async (req) => {
                 break;
             case 'SUGGEST_UNITS':
                 result = await handleAIRequest(
-                    `Para o alimento "${payload.food}", liste as 4 a 6 unidades de medida mais comuns em português brasileiro. Retorne APENAS um objeto JSON: { "units": ["unid", "gramas"] }`,
+                    getSuggestUnitsPrompt(payload.food),
                     true,
                     GEMINI_API_KEY,
                     OPENAI_API_KEY
@@ -78,7 +78,7 @@ serve(async (req) => {
                 break;
             case 'SUGGEST_FOODS':
                 result = await handleAIRequest(
-                    `Liste 6 a 8 variações comuns do alimento "${payload.query}" em português brasileiro. Retorne APENAS um objeto JSON: { "foods": ["Variação 1", "Variação 2"] }`,
+                    getSuggestFoodsPrompt(payload.query),
                     true,
                     GEMINI_API_KEY,
                     OPENAI_API_KEY
@@ -86,7 +86,7 @@ serve(async (req) => {
                 break;
             case 'CHAT':
                 result = await handleAIRequest(
-                    `Você é o Pers, personal trainer do app niume. Contexto: ${payload.context}. Mensagem: ${payload.message}. Responda em português, motivador e direto. Máximo 200 palavras.`,
+                    getChatPrompt(payload.context, payload.message),
                     false,
                     GEMINI_API_KEY,
                     OPENAI_API_KEY
@@ -154,7 +154,6 @@ serve(async (req) => {
 // --- HELPER LOGIC ---
 
 async function handleAIRequest(prompt: string, isJson: boolean, geminiKey?: string, openaiKey?: string, base64?: string, mimeType?: string) {
-    // Try Gemini First
     if (geminiKey) {
         try {
             const response = await callGemini(prompt, geminiKey, base64, mimeType, isJson);
@@ -164,17 +163,20 @@ async function handleAIRequest(prompt: string, isJson: boolean, geminiKey?: stri
         }
     }
 
-    // Fallback to OpenAI
     if (openaiKey) {
-        const response = await callOpenAI(prompt, openaiKey, base64, mimeType, isJson);
-        return isJson ? JSON.parse(response) : response;
+        try {
+            const response = await callOpenAI(prompt, openaiKey, base64, mimeType, isJson);
+            return isJson ? parseSafeJSON(response) : response;
+        } catch (e) {
+            console.warn('OpenAI failed...', e);
+        }
     }
 
     throw new Error('No AI service available or all providers failed');
 }
 
 async function callGemini(prompt: string, key: string, base64?: string, mimeType?: string, isJson = false) {
-    const model = base64 ? 'gemini-1.5-flash' : 'gemini-1.5-flash'; // Fixed models for speed
+    const model = base64 ? 'gemini-1.5-flash' : 'gemini-1.5-flash';
     const url = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${key}`;
 
     const content: any = { parts: [{ text: prompt }] };
@@ -201,7 +203,6 @@ async function callGemini(prompt: string, key: string, base64?: string, mimeType
 
 async function callOpenAI(prompt: string, key: string, base64?: string, mimeType?: string, isJson = false) {
     const messages: any[] = [{ role: 'user', content: prompt }];
-
     if (base64 && mimeType) {
         messages[0].content = [
             { type: 'text', text: prompt },
@@ -228,81 +229,158 @@ async function callOpenAI(prompt: string, key: string, base64?: string, mimeType
     return data.choices?.[0]?.message?.content || '';
 }
 
-// --- PROMPT GENERATORS ---
+// --- PROMPT GENERATORS (Better versions ported from frontend) ---
 
 function getAnalyzeFoodTextPrompt(description: string) {
-    return `Você é um nutricionista experiente. Analise o alimento: "${description}". 
-    Regras estritas:
-    1. Forneça os valores nutricionais SEMPRE baseados em exatas 100 gramas do alimento.
-    2. No campo "description", retorne apenas o nome simples do alimento (ex: "Bombom", em vez de "1 unidade de bombom").
-    3. No campo "unit_weight", estime o peso em gramas de uma unidade comum ou porção padrão desse alimento.
+    return `Você é um nutricionista especialista. Analise o texto abaixo e identifique se ele contém um ou mais alimentos.
+    ALIMENTO/REFEIÇÃO: "${description}"
+    REGRAS:
+    1. SEPARAÇÃO: Se o usuário descrever múltiplos itens, separe-os em itens individuais.
+    2. PRATOS COMPOSTOS: Se for um prato conhecido (ex: "strogonoff", "feijoada"), trate como UM ÚNICO item.
+    3. VALORES: Forneça os valores nutricionais baseados em 100g para cada item.
+    4. PESO UNITÁRIO: No campo "unit_weight", estime o peso em gramas de uma unidade comum (ex: ovo=50, bombom=20, porção arroz=150).
     
-    Retorne APENAS um objeto JSON no formato:
-    { 
-      "items": [{ 
-        "description": "Nome do Alimento", 
-        "calories": calorias_em_100g, 
-        "protein": proteina_em_100g, 
-        "carbs": carboidratos_em_100g, 
-        "fat": gordura_em_100g,
-        "unit_weight": peso_de_UMA_unidade_em_gramas_EX_sushi_25_bombom_20_porcao_prato_300
-      }] 
-    }`;
+    Retorne APENAS um objeto JSON:
+    { "items": [{ "description": "Nome", "calories": 100, "protein": 5, "carbs": 20, "fat": 2, "unit_weight": 100 }] }`;
 }
 
-function getAnalyzeFoodPhotoPrompt() {
-    return `Identifique todos alimentos na foto. Retorne JSON: { "items": [{ "description": "nome", "calories": number, "protein": number, "carbs": number, "fat": number }] }`;
+function getAnalyzeFoodPhotoItemsPrompt() {
+    return `Identifique TODOS os alimentos e itens individuais visíveis nesta foto. Para CADA item, estime os valores nutricionais em português.
+    Retorne APENAS um objeto JSON:
+    { "items": [{ "description": "Nome", "calories": 130, "protein": 2, "carbs": 28, "fat": 0 }] }
+    REGRAS: Liste cada componente individualmente. Estime valores realistas por 100g.`;
 }
 
 function getGenerateWorkoutPrompt(data: any) {
-    return `Crie plano de treino JSON 4 semanas. Perfil: ${JSON.stringify(data)}. Formato: { "name": "...", "weeks": [{ "week": 1, "days": [{ "day": 1, "name": "...", "type": "strength", "exercises": [{ "exercise_id": "0009", "name": "...", "sets": 3, "reps": "12", "rest_seconds": 60, "instructions": "..." }] }] }] }`;
+    return `Crie um plano de treino JSON de 4 semanas. Perfil: ${JSON.stringify(data)}.
+    Instruções: 7 dias cada semana. IDs de exercícios de 4 dígitos do ExerciseDB (ex: "0009" para flexão).
+    Dias inativos devem ter type: "rest".
+    Formato: { "name": "...", "weeks": [{ "week": 1, "days": [{ "day": 1, "name": "...", "type": "strength", "exercises": [{ "exercise_id": "0009", "name": "...", "sets": 3, "reps": "12", "rest_seconds": 60, "instructions": "..." }] }] }] }`;
 }
 
 function getGenerateWorkoutSinglePrompt(payload: any) {
-    return `Crie treino JSON de 1 dia para ${payload.dayName}. Local: ${payload.location}. Perfil: ${JSON.stringify(payload.profile)}. Retorne objeto JSON: { "day": 1, "name": "...", "exercises": [...] }`;
+    return `Crie treino JSON de 1 dia para ${payload.dayName}. Perfil: ${JSON.stringify(payload.profile)}.
+    IDs Exercícios de 4 dígitos. Local: ${payload.location}. Tempo: ${payload.availableMinutes}min.
+    Retorne JSON: { "day": 1, "name": "...", "exercises": [...] }`;
 }
 
 function getGenerateDietPrompt(data: any) {
-    return `Crie plano alimentar diário JSON. Objetivo: ${data.goal}, Meta: ${data.daily_calorie_goal} kcal. JSON: { "daily_calories": number, "meals": [{ "type": "Café", "time": "08:00", "calories": 400, "options": ["Opção 1", "Opção 2"] }] }`;
+    return `Crie plano alimentar diário JSON. Objetivo: ${data.goal}, Meta: ${data.daily_calorie_goal} kcal. 
+    Considere alimentos favoritos: ${data.food_preferences?.join(', ')}.
+    JSON: { "daily_calories": number, "macros": { "protein": 0, "carbs": 0, "fat": 0 }, "meals": [{ "type": "Café", "time": "08:00", "calories": 400, "options": ["Opção 1", "Opção 2"] }], "tips": ["..."] }`;
+}
+
+function getSuggestUnitsPrompt(food: string) {
+    return `Para o alimento "${food}", liste as 4 a 6 unidades de medida mais comuns em português brasileiro.
+    Retorne APENAS um objeto JSON: { "units": ["unid", "gramas", "xícara", "colher", "ml"] }`;
+}
+
+function getSuggestFoodsPrompt(query: string) {
+    return `Liste 6 a 8 variações comuns do alimento "${query}" em português (ex: "pão de forma", "pão integral").
+    Retorne APENAS um objeto JSON: { "foods": ["Variação 1", "Variação 2"] }`;
+}
+
+function getChatPrompt(context: string, message: string) {
+    return `Você é o Pers, personal trainer do app niume. Contexto do usuário: ${context}.
+    Mensagem do usuário: ${message}.
+    Responda em português, amigável, motivador e técnico. Máximo 200 palavras.`;
 }
 
 function getAnalyzeBodyPrompt() {
-    return `Analise a foto corporal como personal profissional. Estime % gordura, pontos fortes e áreas de melhoria. Seja motivador.`;
+    return `Analise esta foto corporal como personal trainer. Descreva em português: 1. Estimativa de % gordura, 2. Pontos fortes, 3. Melhorias, 4. Foco de treino.
+    Seja encorajador. Retorne como texto simples (não JSON).`;
 }
 
 function getGenerateCardioPlanPrompt(data: any) {
     const { profile, cardioType, activeDays, goalMinutes } = data;
-    return `Crie plano de cardio JSON 4 semanas. Tipo: ${cardioType}. Dias: ${activeDays?.join(', ')}. Duração por sessão: ${goalMinutes}min. Perfil: ${JSON.stringify(profile ?? {})}. Formato: { "name": "Plano Cardio ...", "description": "...", "estimated_weeks": 4, "weeks": [{ "week": 1, "days": [{ "day": 1, "name": "...", "type": "cardio", "exercises": [{ "exercise_id": "c01", "name": "...", "sets": 1, "reps": "${goalMinutes ?? 30}min", "rest_seconds": 60, "instructions": "..." }] }] }] }`;
+    return `Crie plano de cardio JSON 4 semanas. Tipo: ${cardioType}. Dias: ${activeDays?.join(', ')}. Duração: ${goalMinutes}min. Perfil: ${JSON.stringify(profile)}. 
+    Formato: { "name": "...", "weeks": [{ "week": 1, "days": [{ "day": 1, "type": "cardio", "exercises": [...] }] }] }`;
 }
 
 function getGenerateModalityPlanPrompt(data: any) {
     const { profile, modality } = data;
-    return `Crie plano de treino JSON 4 semanas para a modalidade esportiva "${modality?.name}" (${modality?.description ?? ''}). Adapte ao perfil: ${JSON.stringify(profile ?? {})}. Formato: { "name": "Plano ${modality?.name ?? 'Modalidade'}", "description": "...", "estimated_weeks": 4, "weeks": [{ "week": 1, "days": [{ "day": 1, "name": "...", "type": "strength", "exercises": [{ "exercise_id": "m01", "name": "...", "sets": 3, "reps": "12", "rest_seconds": 60, "instructions": "..." }] }] }] }`;
+    return `Crie plano de treino JSON 4 semanas para a modalidade "${modality?.name}". Perfil: ${JSON.stringify(profile)}.
+    Formato: { "name": "...", "weeks": [{ "week": 1, "days": [...] }] }`;
 }
 
 function getGenerateModalityExercisesPrompt(data: any) {
     const { modality, count } = data;
-    return `Liste ${count ?? 6} exercícios específicos para a modalidade "${modality?.name}" (${modality?.description ?? ''}). Retorne APENAS JSON: { "exercises": [{ "name": "...", "muscle_group": "...", "equipment": "livre", "instructions": "..." }] }`;
+    return `Liste ${count} exercícios para a modalidade "${modality?.name}". Retorne JSON: { "exercises": [{ "name": "...", "muscle_group": "...", "instructions": "..." }] }`;
 }
 
 function getGenerateExerciseInstructionsPrompt(data: any) {
-    return `Gere instruções de execução em 2-3 frases para o exercício "${data.exerciseName}" (categoria: ${data.category}${data.modalityName ? ', modalidade: ' + data.modalityName : ''}). Seja objetivo e técnico.`;
+    return `Gere instruções de execução (2-3 frases) para o exercício "${data.exerciseName}". Seja técnico em português.`;
 }
 
-// Minimal parseSafeJSON for Edge Function
+// --- ROBUST JSON PARSER (Ported from geminiService.ts) ---
+
 function parseSafeJSON(text: string): any {
     try {
         const cleaned = text.replace(/```json/g, '').replace(/```/g, '').trim();
-        return JSON.parse(cleaned);
-    } catch {
-        // If simple parse fails, use a basic substring match to try and find the first JSON object
+        const firstBrace = cleaned.indexOf('{');
+        const firstBracket = cleaned.indexOf('[');
+        if (firstBrace === -1 && firstBracket === -1) return null;
+
+        const start = (firstBrace !== -1 && (firstBracket === -1 || firstBrace < firstBracket)) ? firstBrace : firstBracket;
+        const jsonStr = cleaned.slice(start);
+
+        let parsed: any = null;
         try {
-            const firstBrace = text.indexOf('{');
-            const lastBrace = text.lastIndexOf('}');
-            if (firstBrace !== -1 && lastBrace !== -1) {
-                return JSON.parse(text.substring(firstBrace, lastBrace + 1));
+            parsed = JSON.parse(jsonStr);
+        } catch {
+            const stack: ("{" | "[")[] = [];
+            let inString = false;
+            let escaped = false;
+            for (let i = 0; i < jsonStr.length; i++) {
+                const ch = jsonStr[i];
+                if (escaped) { escaped = false; continue; }
+                if (ch === '\\' && inString) { escaped = true; continue; }
+                if (ch === '"') { inString = !inString; continue; }
+                if (!inString) {
+                    if (ch === '{' || ch === '[') stack.push(ch as "{" | "[");
+                    else if (ch === '}' || ch === ']') stack.pop();
+                }
             }
-        } catch { }
-        return { items: [], error: 'JSON Parse Failed' };
+            let repaired = jsonStr;
+            if (inString) repaired += '"';
+            repaired = repaired.replace(/,\s*$/, '');
+            while (stack.length > 0) {
+                const last = stack.pop();
+                repaired += (last === '{' ? '}' : ']');
+            }
+            try {
+                parsed = JSON.parse(repaired);
+            } catch {
+                try {
+                    const lastBraceIdx = jsonStr.lastIndexOf('}');
+                    const lastBracketIdx = jsonStr.lastIndexOf(']');
+                    const boundary = Math.max(lastBraceIdx, lastBracketIdx);
+                    if (boundary > 0) parsed = JSON.parse(jsonStr.substring(0, boundary + 1));
+                } catch { return null; }
+            }
+        }
+
+        const ensureNumbers = (obj: any): any => {
+            if (!obj || typeof obj !== 'object') return obj;
+            if (Array.isArray(obj)) return obj.map(ensureNumbers);
+            const numFields = ['calories', 'protein', 'carbs', 'fat'];
+            numFields.forEach(f => {
+                if (f in obj) {
+                    const val = obj[f];
+                    if (typeof val === 'string') {
+                        const m = val.match(/^[\d.]+/);
+                        obj[f] = m ? Math.round(parseFloat(m[0])) : 0;
+                    } else if (typeof val !== 'number') obj[f] = 0;
+                    else obj[f] = Math.round(val);
+                }
+            });
+            return obj;
+        };
+
+        return ensureNumbers(parsed);
+    } catch (e) {
+        console.warn('parseSafeJSON critical failure', e);
+        return null;
     }
 }
+

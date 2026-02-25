@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import { supabase } from '../lib/supabase';
 import { getLocalYYYYMMDD } from '../lib/dateUtils';
 import { aiService } from '../services/aiService';
+import { gamificationService } from '../lib/gamificationService';
 import BarcodeScanner from './BarcodeScanner';
 import type { Profile, Meal, MealType, FoodAnalysis } from '../types';
 
@@ -714,7 +715,7 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
             const newMeals = [...meals, ...(inserted as Meal[])];
             setMeals(newMeals);
             await updateDailyNutrition(newMeals);
-            await rewardGamification(items.length);
+            await gamificationService.awardPoints(profile.id, 'MEAL_LOGGED', items.length);
             onUpdate();
         } catch (e) {
             toast.error('Erro ao salvar.', { id: toastId });
@@ -722,15 +723,7 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
             setSaving(false);
         }
     }
-    async function rewardGamification(mealCount = 1) {
-        const { data } = await supabase.from('gamification').select('points, total_meals_logged').eq('user_id', profile.id).single();
-        if (data) {
-            await supabase.from('gamification').update({
-                points: data.points + (mealCount * 25), // 25 points per meal
-                total_meals_logged: data.total_meals_logged + mealCount
-            }).eq('user_id', profile.id);
-        }
-    }
+
 
     async function updateDailyNutrition(mealList: { calories: number; protein: number; carbs: number; fat: number }[]) {
         const totals = mealList.reduce((acc, m) => ({
@@ -826,7 +819,7 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
         const newMeals = [...meals, insertedMeal as Meal];
         setMeals(newMeals);
         await updateDailyNutrition(newMeals);
-        await rewardGamification(1);
+        await gamificationService.awardPoints(profile.id, 'MEAL_LOGGED');
         onUpdate();
 
         // Background calculation if not analyzed AND no overrides provided

@@ -36,40 +36,44 @@ export default function WorkoutHub({ musculacaoPlan, cardioPlan, modalidadePlan,
 
     async function loadActivity() {
         try {
+            const now = new Date();
+            const startStr = getLocalYYYYMMDD(new Date(new Date().setDate(now.getDate() - 6)));
+
+            const [wRes, cRes] = await Promise.all([
+                supabase.from('workout_sessions').select('session_date, completed')
+                    .eq('user_id', profile.id)
+                    .gte('session_date', startStr),
+                supabase.from('cardio_sessions').select('session_date')
+                    .eq('user_id', profile.id)
+                    .gte('session_date', startStr),
+            ]);
+
             const days: WeeklyActivity[] = [];
             for (let i = 6; i >= 0; i--) {
                 const d = new Date();
                 d.setDate(d.getDate() - i);
                 const ymd = getLocalYYYYMMDD(d);
+
                 days.push({
                     day: ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'][d.getDay()],
-                    workouts: 0,
-                    cardio: 0,
+                    workouts: wRes.data?.filter(s => s.session_date === ymd && s.completed).length || 0,
+                    cardio: cRes.data?.filter(s => s.session_date === ymd).length || 0,
                 });
-
-                supabase.from('workout_sessions').select('id', { count: 'exact', head: true })
-                    .eq('user_id', profile.id).eq('session_date', ymd).eq('completed', true)
-                    .then(({ count }) => {
-                        days[6 - i].workouts = count ?? 0;
-                    });
-
-                supabase.from('cardio_sessions').select('id', { count: 'exact', head: true })
-                    .eq('user_id', profile.id).eq('session_date', ymd)
-                    .then(({ count }) => {
-                        days[6 - i].cardio = count ?? 0;
-                    });
             }
 
-            // Total workouts + cardio
-            const [wRes, cRes] = await Promise.all([
-                supabase.from('workout_sessions').select('id', { count: 'exact', head: true }).eq('user_id', profile.id).eq('completed', true),
-                supabase.from('cardio_sessions').select('id', { count: 'exact', head: true }).eq('user_id', profile.id),
-            ]);
-            setTotalWorkouts((wRes.count ?? 0) + (cRes.count ?? 0));
+            // Total workouts count for summary
+            const { count: totalW } = await supabase.from('workout_sessions')
+                .select('id', { count: 'exact', head: true })
+                .eq('user_id', profile.id)
+                .eq('completed', true);
+            const { count: totalC } = await supabase.from('cardio_sessions')
+                .select('id', { count: 'exact', head: true })
+                .eq('user_id', profile.id);
 
-            setTimeout(() => setWeekActivity([...days]), 400);
-        } catch {
-            // non-critical
+            setTotalWorkouts((totalW || 0) + (totalC || 0));
+            setWeekActivity(days);
+        } catch (error) {
+            console.error('loadActivity error', error);
         }
     }
 

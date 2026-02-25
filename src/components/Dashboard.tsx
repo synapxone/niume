@@ -41,10 +41,16 @@ function getGreeting(): string {
 
 function getTodayWorkout(plan: WorkoutPlan | null) {
     if (!plan) return null;
-    const dayOfWeek = new Date().getDay(); // 0=Sun
+    const createdAt = new Date(plan.created_at);
+    const today = new Date();
+    const diffTime = Math.abs(today.getTime() - createdAt.getTime());
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    const currentWeekIdx = Math.floor(diffDays / 7);
+
     const weeks = plan.plan_data?.weeks;
     if (!weeks?.length) return null;
-    const currentWeek = weeks[0];
+    const currentWeek = weeks[currentWeekIdx % weeks.length];
+    const dayOfWeek = today.getDay(); // 0=Sun
     const dayIndex = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
     return currentWeek.days[dayIndex % currentWeek.days.length] || null;
 }
@@ -68,6 +74,9 @@ export default function Dashboard({ profile, musculacaoPlan, cardioPlan, modalid
     });
     const [nutritionTotals, setNutritionTotals] = useState<NutritionTotals | null>(null);
     const [showDailyReward, setShowDailyReward] = useState(false);
+    const [totalLoad, setTotalLoad] = useState(0);
+    const [freqTrend, setFreqTrend] = useState(0);
+    const [weeklyPerf, setWeeklyPerf] = useState<number[]>([]);
 
     useEffect(() => {
         const todayStr = getLocalYYYYMMDD();
@@ -82,23 +91,69 @@ export default function Dashboard({ profile, musculacaoPlan, cardioPlan, modalid
         sessionStorage.setItem('activeTab', activeTab);
         window.scrollTo({ top: 0, behavior: 'auto' });
 
-        if (activeTab === 'home' && !nutritionTotals) {
+        if (activeTab === 'home') {
             const ymd = getLocalYYYYMMDD();
-            supabase.from('meals')
-                .select('calories, protein, carbs, fat')
-                .eq('user_id', profile.id)
-                .eq('meal_date', ymd)
-                .then(({ data }) => {
-                    if (data) {
-                        const t = data.reduce((acc, curr) => ({
-                            calories: acc.calories + (curr.calories || 0),
-                            protein: acc.protein + (curr.protein || 0),
-                            carbs: acc.carbs + (curr.carbs || 0),
-                            fat: acc.fat + (curr.fat || 0)
-                        }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
-                        setNutritionTotals(t);
+            // Fetch nutrition
+            if (!nutritionTotals) {
+                supabase.from('meals')
+                    .select('calories, protein, carbs, fat')
+                    .eq('user_id', profile.id)
+                    .eq('meal_date', ymd)
+                    .then(({ data }) => {
+                        if (data) {
+                            const t = data.reduce((acc, curr) => ({
+                                calories: acc.calories + (curr.calories || 0),
+                                protein: acc.protein + (curr.protein || 0),
+                                carbs: acc.carbs + (curr.carbs || 0),
+                                fat: acc.fat + (curr.fat || 0)
+                            }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
+                            setNutritionTotals(t);
+                        }
+                    });
+            }
+
+            // Fetch real Exercise Stats
+            const fetchStats = async () => {
+                const now = new Date();
+                const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay()));
+                const startOfPrevWeek = new Date(new Date(startOfWeek).setDate(startOfWeek.getDate() - 7));
+
+                // Total load kg
+                const { data: sessions } = await supabase.from('workout_sessions')
+                    .select('total_load_kg, session_date')
+                    .eq('user_id', profile.id)
+                    .eq('completed', true);
+
+                if (sessions) {
+                    const total = sessions.reduce((acc, s) => acc + (s.total_load_kg || 0), 0);
+                    setTotalLoad(total);
+
+                    // Calc Frequency Trend
+                    const thisWeek = sessions.filter(s => new Date(s.session_date) >= startOfWeek).length;
+                    const lastWeek = sessions.filter(s => {
+                        const d = new Date(s.session_date);
+                        return d >= startOfPrevWeek && d < startOfWeek;
+                    }).length;
+
+                    if (lastWeek > 0) {
+                        setFreqTrend(Math.round(((thisWeek - lastWeek) / lastWeek) * 100));
+                    } else if (thisWeek > 0) {
+                        setFreqTrend(100);
                     }
-                });
+
+                    // Calc Weekly Perf (last 7 days)
+                    const last7: number[] = [];
+                    for (let i = 6; i >= 0; i--) {
+                        const d = new Date();
+                        d.setDate(d.getDate() - i);
+                        const dStr = d.toISOString().split('T')[0];
+                        const count = sessions.filter(s => s.session_date === dStr).length;
+                        last7.push(count > 0 ? 100 : 20); // 100% height if trained, 20% if not
+                    }
+                    setWeeklyPerf(last7);
+                }
+            };
+            fetchStats();
         }
     }, [activeTab, profile.id, nutritionTotals]);
 
@@ -108,11 +163,6 @@ export default function Dashboard({ profile, musculacaoPlan, cardioPlan, modalid
     const dedication = gamification
         ? Math.min(100, Math.max(32.5, (gamification.streak_days * 5) + (gamification.total_workouts * 3) + (gamification.total_meals_logged * 1)))
         : 32.5;
-
-    // Estimate total weight moved from localStorage
-    const totalWeight = Object.keys(localStorage)
-        .filter(k => k.startsWith('weight_'))
-        .reduce((acc, k) => acc + (parseFloat(localStorage.getItem(k) || '0') || 0), 0) * (gamification?.total_workouts || 1); // rough estimate
 
     return (
         <div className="min-h-screen flex flex-col font-sans bg-dark text-text-main">
@@ -205,9 +255,9 @@ export default function Dashboard({ profile, musculacaoPlan, cardioPlan, modalid
                                                 </div>
                                             </div>
                                             <div className="w-16 h-8 flex items-end gap-1 opacity-70">
-                                                {/* Mock Weekly Performance Graph */}
-                                                {[30, 80, 50, 100, 60, 40, 90].map((h, i) => (
-                                                    <div key={i} className="flex-1 rounded-sm bg-primary" style={{ height: `${h}%` }} />
+                                                {/* Real Weekly Performance Graph */}
+                                                {(weeklyPerf.length > 0 ? weeklyPerf : [20, 20, 20, 20, 20, 20, 20]).map((h, i) => (
+                                                    <div key={i} className="flex-1 rounded-sm bg-primary transition-all duration-500" style={{ height: `${h}%`, opacity: h > 20 ? 1 : 0.3 }} />
                                                 ))}
                                             </div>
                                         </div>
@@ -256,10 +306,10 @@ export default function Dashboard({ profile, musculacaoPlan, cardioPlan, modalid
                                             <div className="relative z-10 mt-1">
                                                 <p className="text-[10px] text-proteina font-bold uppercase tracking-widest mb-1 truncate">Volume de Carga</p>
                                                 <div className="flex items-baseline gap-1.5">
-                                                    <p className="text-text-main font-extrabold text-[1.1rem] leading-none truncate">{totalWeight > 1000 ? (totalWeight / 1000).toFixed(1) + 'k' : totalWeight}</p>
+                                                    <p className="text-text-main font-extrabold text-[1.1rem] leading-none truncate">{totalLoad > 1000 ? (totalLoad / 1000).toFixed(1) + 'k' : totalLoad}</p>
                                                     <span className="text-text-muted text-xs font-medium">kg</span>
                                                 </div>
-                                                <p className="text-text-muted text-[9px] mt-1.5 font-medium uppercase truncate">SEMANAL</p>
+                                                <p className="text-text-muted text-[9px] mt-1.5 font-medium uppercase truncate">ACUMULADO</p>
                                             </div>
                                         </div>
 
@@ -270,8 +320,8 @@ export default function Dashboard({ profile, musculacaoPlan, cardioPlan, modalid
                                                     <CheckCircle2 size={18} className="text-primary" />
                                                 </div>
                                                 <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-md border" style={{ backgroundColor: 'rgba(var(--text-main-rgb), 0.05)', borderColor: 'var(--border-main)' }}>
-                                                    <ChevronUp size={12} className="text-proteina" />
-                                                    <span className="text-[10px] font-bold text-proteina">12%</span>
+                                                    <ChevronUp size={12} className={freqTrend >= 0 ? "text-proteina" : "text-accent"} style={{ transform: freqTrend < 0 ? 'rotate(180deg)' : 'none' }} />
+                                                    <span className={`text-[10px] font-bold ${freqTrend >= 0 ? "text-proteina" : "text-accent"}`}>{Math.abs(freqTrend)}%</span>
                                                 </div>
                                             </div>
                                             <div className="relative z-10 mt-1">
@@ -370,7 +420,7 @@ export default function Dashboard({ profile, musculacaoPlan, cardioPlan, modalid
 
                 {/* VERSION INDICATOR */}
                 <div className="flex justify-center mt-8 mb-4">
-                    <span className="text-[10px] text-text-muted/40 font-semibold tracking-widest uppercase">Versão 1.3.2</span>
+                    <span className="text-[10px] text-text-muted/40 font-semibold tracking-widest uppercase">Versão 1.3.1</span>
                 </div>
             </main>
 

@@ -2,7 +2,7 @@
 
 Aplicativo de fitness pessoal com IA — treinos, nutrição, gamificação e acompanhamento de evolução. (Antigo Personall)
 
-> **v1.5.2** — Correções na Dieta: Precisão de decimais nos macros e paleta de cores mais suave para os gráficos e dashboards.
+> **v1.6.0** — Refatoração de Segurança (Edge Functions), IA Backend, Gamificação Centralizada e Dashboard Real-Time.
 
 ---
 
@@ -377,6 +377,14 @@ O niume utiliza **Capacitor** para rodar nativamente em iOS e Android. Para mant
 ---
 
 ## Histórico / Changelog Diário (Comunicação entre Agentes)
+
+### v1.6.0 — Segurança & Arquitetura Pro (Edge Functions)
+- **Migração para Backend**: Toda a lógica de IA (Gemini/OpenAI) agora reside em Supabase Edge Functions. Chave de API Gemini removida 100% do frontend.
+- **Reliability (Contingência)**: Implementado fallback inteligente para OpenAI se o Gemini falhar ou estiver instável.
+- **Gamificação Unificada**: Centralização da lógica de ganho de XP, níveis e streaks no `gamificationService.ts`, garantindo consistência entre treinos, dieta e evolução.
+- **Dashboard Data-Driven**: O gráfico de "Desempenho Semanal" agora exibe dados reais baseados nas últimas 7 sessões de treino, substituindo o placeholder estático.
+- **Evolução Avançada**: Registro de evolução com upload de fotos sincronizado ao Storage e uma nova análise corporal via IA que gera feedbacks bioestatísticos.
+- **Polimento UX**: Substituição de alertas de sistema (`confirm`) por modais customizados premium no reset de conta e registros críticos.
 
 ### v1.4.0 — Reestruturação Completa de Treino
 - **3 Categorias de Treino**: Musculação, Cardio e Modalidade, cada uma com 1 plano ativo simultâneo.

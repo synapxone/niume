@@ -7,6 +7,7 @@ import type { MediaResult } from '../services/exerciseMediaService';
 import { aiService } from '../services/aiService';
 import { getLocalYYYYMMDD } from '../lib/dateUtils';
 import { POINTS } from '../types';
+import { gamificationService } from '../lib/gamificationService';
 import type { WorkoutPlan, Profile, Exercise } from '../types';
 
 interface Props {
@@ -421,18 +422,7 @@ export default function WorkoutDayView({ plan, profile, onComplete, hideHeader =
                 completed: allDone,
             }).throwOnError();
 
-            try {
-                await supabase.rpc('add_points', { p_user_id: profile.id, p_points: pts });
-            } catch {
-                const { data: gam } = await supabase.from('gamification').select('*').eq('user_id', profile.id).single();
-                if (gam) {
-                    await supabase.from('gamification').update({
-                        points: (gam.points || 0) + pts,
-                        total_workouts: (gam.total_workouts || 0) + 1,
-                        last_activity_date: getLocalYYYYMMDD(),
-                    }).eq('user_id', profile.id);
-                }
-            }
+            await gamificationService.awardPoints(profile.id, allDone ? 'WORKOUT_COMPLETE' : 'WORKOUT_PARTIAL');
 
             setSessionDone(true);
             onComplete(pts);
