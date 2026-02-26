@@ -29,6 +29,19 @@ const MEAL_TYPES: { id: MealType; label: string; icon: React.ReactNode; time: st
     { id: 'dinner', label: 'Jantar', icon: <TrendingUp size={18} />, time: '19:00', colorKey: 'proteina' },
 ];
 
+const MOTIVATIONAL_MESSAGES = [
+    "Relaxa. Um dia fora da dieta não apaga uma semana de disciplina. Consistência ganha de perfeição.",
+    "Seu corpo não funciona no modo “punição automática”. Ele trabalha com média, não com um episódio isolado.",
+    "Se fosse tão fácil engordar em um dia, também seria fácil emagrecer em um dia. E você sabe que não é assim 😉",
+    "Hoje foi exceção, não identidade. Você continua sendo alguém que cuida de si.",
+    "Calorias extras não são fracasso, são só energia. Amanhã você realinha o volante e segue a estrada.",
+    "Se comida resolvesse tudo, nutricionista era filósofo. Equilíbrio é construção, não milagre.",
+    "Você não “estragou tudo”. Isso não é videogame pra zerar progresso por causa de um erro.",
+    "Às vezes a dieta sai da linha. O importante é você não sair do compromisso.",
+    "Foi um dia calórico, não um veredito sobre sua força de vontade.",
+    "Respira. Bebe água. Dorme bem. Amanhã você volta pro plano como alguém maduro — não como alguém culpado."
+];
+
 function today(): string {
     return getLocalYYYYMMDD();
 }
@@ -184,6 +197,7 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
     const [editSaving, setEditSaving] = useState(false);
     const [editQty, setEditQty] = useState<number | string>('');
     const [editUnit, setEditUnit] = useState('');
+    const [randomMsgIndex] = useState(() => Math.floor(Math.random() * MOTIVATIONAL_MESSAGES.length));
 
     useEffect(() => {
         loadData(selectedDate);
@@ -1028,16 +1042,17 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
                             />
 
                             {totals.calories > goal ? (
-                                /* Over goal - show failure gradient */
+                                /* Over goal - show faded/lighter ring */
                                 <motion.circle
                                     cx="80" cy="80" r="68" fill="none"
-                                    stroke="url(#failGradient)"
+                                    stroke="var(--accent)"
                                     strokeWidth="12"
                                     strokeDasharray={circumference}
                                     initial={{ strokeDashoffset: circumference }}
                                     animate={{ strokeDashoffset: 0 }}
                                     transition={{ duration: 1.5, ease: "easeOut" }}
                                     strokeLinecap="round"
+                                    style={{ opacity: 0.2 }}
                                 />
                             ) : (
                                 /* Under goal - segmented macro colors */
@@ -1091,10 +1106,13 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
                                 </linearGradient>
                             </defs>
                         </svg>
-                        <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                            {totals.calories >= goal ? (
+                        <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6">
+                            {totals.calories > goal ? (
+                                <p className="text-[10px] font-medium text-text-muted leading-relaxed italic animate-in fade-in duration-700">
+                                    {MOTIVATIONAL_MESSAGES[randomMsgIndex]}
+                                </p>
+                            ) : totals.calories === goal ? (
                                 <div className="flex flex-col items-center gap-1">
-                                    <Sparkles size={24} className="text-emerald-400 animate-pulse" />
                                     <span className="text-[10px] font-black text-emerald-400 uppercase tracking-[0.2em] leading-tight">Meta<br />Batida</span>
                                 </div>
                             ) : (

@@ -68,31 +68,59 @@ export default function ProfileView({ profile, onSignOut, onRefresh }: Props) {
     // Theme state
     const [isLightMode, setIsLightMode] = useState(() => document.documentElement.classList.contains('light'));
 
+    // Resize + compress image via canvas before moderation/upload (avoids edge function body size limit)
+    function resizeImage(file: File, maxPx = 800): Promise<{ blob: Blob; base64: string; mimeType: string }> {
+        return new Promise((res, rej) => {
+            const img = new Image();
+            const objectUrl = URL.createObjectURL(file);
+            img.onload = () => {
+                URL.revokeObjectURL(objectUrl);
+                const scale = Math.min(1, maxPx / Math.max(img.width, img.height));
+                const w = Math.round(img.width * scale);
+                const h = Math.round(img.height * scale);
+                const canvas = document.createElement('canvas');
+                canvas.width = w;
+                canvas.height = h;
+                canvas.getContext('2d')!.drawImage(img, 0, 0, w, h);
+                canvas.toBlob(blob => {
+                    if (!blob) { rej(new Error('Canvas toBlob falhou')); return; }
+                    const reader = new FileReader();
+                    reader.onload = () => res({
+                        blob,
+                        base64: (reader.result as string).split(',')[1],
+                        mimeType: 'image/jpeg',
+                    });
+                    reader.onerror = rej;
+                    reader.readAsDataURL(blob);
+                }, 'image/jpeg', 0.82);
+            };
+            img.onerror = rej;
+            img.src = objectUrl;
+        });
+    }
+
     async function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
         const file = e.target.files?.[0];
         if (!file) return;
-        if (file.size > 5 * 1024 * 1024) {
-            toast.error('Foto muito grande. Máximo 5 MB.');
+        if (file.size > 10 * 1024 * 1024) {
+            toast.error('Foto muito grande. Máximo 10 MB.');
             return;
         }
         setAvatarUploading(true);
         try {
-            const reader = new FileReader();
-            const base64: string = await new Promise((res, rej) => {
-                reader.onload = () => res((reader.result as string).split(',')[1]);
-                reader.onerror = rej;
-                reader.readAsDataURL(file);
-            });
-            const moderation = await aiService.moderateProfilePhoto(base64, file.type);
+            // Compress to ≤800px JPEG for moderation (avoids edge function size limit)
+            const { blob, base64, mimeType } = await resizeImage(file);
+
+            const moderation = await aiService.moderateProfilePhoto(base64, mimeType);
             if (!moderation.approved) {
                 toast.error(`Foto não permitida: ${moderation.reason ?? 'conteúdo inapropriado'}`);
                 return;
             }
-            const ext = file.name.split('.').pop() || 'jpg';
-            const filename = `${profile.id}/${Date.now()}.${ext}`;
+            // Upload the compressed blob to Storage
+            const filename = `${profile.id}/${Date.now()}.jpg`;
             const { data: uploadData, error: uploadErr } = await supabase.storage
                 .from('profile-photos')
-                .upload(filename, file, { upsert: true });
+                .upload(filename, blob, { upsert: true, contentType: 'image/jpeg' });
             if (uploadErr || !uploadData) throw uploadErr ?? new Error('Upload falhou');
             const { data: urlData } = supabase.storage.from('profile-photos').getPublicUrl(uploadData.path);
             await supabase.from('profiles').update({ photo_url: urlData.publicUrl }).eq('id', profile.id);

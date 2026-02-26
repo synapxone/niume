@@ -134,17 +134,27 @@ serve(async (req) => {
                 );
                 result = { verdict: typeof result === 'string' ? result.trim() : 'APROVADO' };
                 break;
-            case 'MODERATE_PHOTO':
+            case 'MODERATE_PHOTO': {
+                // safetySettings=BLOCK_NONE required so Gemini doesn't refuse to evaluate
+                // potentially sensitive images (this is a content-moderation use case).
+                const photoSafetySettings = [
+                    { category: 'HARM_CATEGORY_HARASSMENT',       threshold: 'BLOCK_NONE' },
+                    { category: 'HARM_CATEGORY_HATE_SPEECH',       threshold: 'BLOCK_NONE' },
+                    { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
+                    { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
+                ];
                 result = await handleAIRequest(
-                    `Analise esta imagem enviada como foto de perfil de um app fitness. Verifique se a imagem é apropriada: deve ser uma foto aceitável de pessoa ou imagem inofensiva. BLOQUEIE se contiver nudez, conteúdo sexual, violência, gore, conteúdo perturbador ou qualquer conteúdo inapropriado. Responda APENAS com uma linha: APROVADO ou BLOQUEADO: <motivo curto em português>`,
+                    'This image was submitted as a profile photo for a fitness app. Is it appropriate for public display in a health and wellness context? Reply with exactly one line: APROVADO or BLOQUEADO: <short reason in Portuguese>.',
                     false,
                     GEMINI_API_KEY,
                     OPENAI_API_KEY,
                     payload.base64,
-                    payload.mimeType
+                    payload.mimeType,
+                    photoSafetySettings
                 );
                 result = { verdict: typeof result === 'string' ? result.trim() : 'APROVADO' };
                 break;
+            }
             default:
                 throw new Error(`Unknown action: ${action}`);
         }
@@ -164,10 +174,10 @@ serve(async (req) => {
 
 // --- HELPER LOGIC ---
 
-async function handleAIRequest(prompt: string, isJson: boolean, geminiKey?: string, openaiKey?: string, base64?: string, mimeType?: string) {
+async function handleAIRequest(prompt: string, isJson: boolean, geminiKey?: string, openaiKey?: string, base64?: string, mimeType?: string, safetySettings?: any[]) {
     if (geminiKey) {
         try {
-            const response = await callGemini(prompt, geminiKey, base64, mimeType, isJson);
+            const response = await callGemini(prompt, geminiKey, base64, mimeType, isJson, safetySettings);
             return isJson ? parseSafeJSON(response) : response;
         } catch (e) {
             console.warn('Gemini failed, falling back...', e);
@@ -186,29 +196,35 @@ async function handleAIRequest(prompt: string, isJson: boolean, geminiKey?: stri
     throw new Error('No AI service available or all providers failed');
 }
 
-async function callGemini(prompt: string, key: string, base64?: string, mimeType?: string, isJson = false) {
-    const model = base64 ? 'gemini-1.5-flash' : 'gemini-1.5-flash';
-    const url = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${key}`;
+async function callGemini(prompt: string, key: string, base64?: string, mimeType?: string, isJson = false, safetySettings?: any[]) {
+    const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${key}`;
 
     const content: any = { parts: [{ text: prompt }] };
     if (base64 && mimeType) {
         content.parts.unshift({ inlineData: { data: base64, mimeType } });
     }
 
+    const body: any = {
+        contents: [content],
+        generationConfig: {
+            temperature: 0.2,
+            ...(isJson ? { response_mime_type: 'application/json' } : {})
+        }
+    };
+    if (safetySettings) body.safetySettings = safetySettings;
+
     const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            contents: [content],
-            generationConfig: {
-                temperature: 0.2,
-                ...(isJson ? { response_mime_type: "application/json" } : {})
-            }
-        })
+        body: JSON.stringify(body)
     });
 
     if (!response.ok) throw new Error(`Gemini API error: ${response.status}`);
     const data = await response.json();
+    // When Gemini's own safety blocks the output, treat as a BLOQUEADO verdict
+    if (data.candidates?.[0]?.finishReason === 'SAFETY') {
+        return 'BLOQUEADO: conteúdo não permitido detectado';
+    }
     return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
 }
 

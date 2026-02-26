@@ -2,6 +2,8 @@
 
 Aplicativo de fitness pessoal com IA — treinos, nutrição, gamificação e acompanhamento de evolução. (Antigo Personall)
 
+> **v1.8.0** — Apoio Nutricional Positivo: Remoção de alertas de "meta batida" e substituição por mensagens motivacionais quando o limite calórico é excedido. O gráfico agora assume tons suaves para reduzir sentimentos de culpa e focar na consistência a longo prazo.
+>
 > **v1.7.2** — Precisão Nutricional: correção no cálculo de unidades Individuais (ex: biscoitos, bombons) com estimativa de peso unitário via IA e feedback visual no log de dieta. Nova coluna `unit_weight` no banco de dados.
 >
 > **v1.7.1** — Foto de perfil com moderação por IA: upload de avatar na tela de perfil; Gemini Vision verifica se a imagem é apropriada antes de salvar (bloqueia nudez, violência, conteúdo perturbador).
@@ -383,6 +385,11 @@ O niume utiliza **Capacitor** para rodar nativamente em iOS e Android. Para mant
 ---
 
 ## Histórico / Changelog Diário (Comunicação entre Agentes)
+
+### v1.8.0 — Apoio Nutricional & Mindset Positivo
+- **Mensagens Motivacionais**: Introduzido sistema de frases de apoio quando o usuário excede a meta calórica, focando em consistência e equilíbrio em vez de culpa.
+- **Design Suave**: O gráfico de calorias agora adota um visual "opaco e clarinho" (redução de contraste e tons de alerta) ao ultrapassar o limite, removendo o ícone de alerta e a mensagem "Meta Batida" de excesso.
+- **Remoção de Veredito**: Substituição do feedback de "erro" por uma perspectiva de progresso contínuo ("Um dia calórico não é um veredito").
 
 ### v1.7.2 — Precisão Nutricional & Unidades
 - **Lógica de Unidades**: Correção do erro de sobrepeso calórico em produtos (ex: biscoitos). O sistema agora estima o peso de uma unidade individual através da IA em vez de assumir 100g ou o pacote todo.
