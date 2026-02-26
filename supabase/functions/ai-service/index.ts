@@ -190,13 +190,19 @@ Deno.serve(async (req) => {
 // --- HELPER LOGIC ---
 
 async function handleAIRequest(prompt: string, isJson: boolean, geminiKey?: string, openaiKey?: string, base64?: string, mimeType?: string, safetySettings?: any[]) {
+    let geminiError: string | null = null;
+    let openaiError: string | null = null;
+
     if (geminiKey) {
         try {
             const response = await callGemini(prompt, geminiKey, base64, mimeType, isJson, safetySettings);
             return isJson ? parseSafeJSON(response) : response;
         } catch (e) {
-            console.warn('Gemini failed, falling back...', e);
+            geminiError = e instanceof Error ? e.message : String(e);
+            console.warn('Gemini failed:', geminiError);
         }
+    } else {
+        geminiError = 'GEMINI_API_KEY not set';
     }
 
     if (openaiKey) {
@@ -204,11 +210,14 @@ async function handleAIRequest(prompt: string, isJson: boolean, geminiKey?: stri
             const response = await callOpenAI(prompt, openaiKey, base64, mimeType, isJson);
             return isJson ? parseSafeJSON(response) : response;
         } catch (e) {
-            console.warn('OpenAI failed...', e);
+            openaiError = e instanceof Error ? e.message : String(e);
+            console.warn('OpenAI failed:', openaiError);
         }
+    } else {
+        openaiError = 'OPENAI_API_KEY not set';
     }
 
-    throw new Error('No AI service available or all providers failed');
+    throw new Error(`AI Request failed. Gemini: ${geminiError} | OpenAI: ${openaiError}`);
 }
 
 async function callGemini(prompt: string, key: string, base64?: string, mimeType?: string, isJson = false, safetySettings?: any[]) {
@@ -234,7 +243,10 @@ async function callGemini(prompt: string, key: string, base64?: string, mimeType
         body: JSON.stringify(body)
     });
 
-    if (!response.ok) throw new Error(`Gemini API error: ${response.status}`);
+    if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`Gemini API error ${response.status}: ${errText}`);
+    }
     const data = await response.json();
     // When Gemini's own safety blocks the output, treat as a BLOQUEADO verdict
     if (data.candidates?.[0]?.finishReason === 'SAFETY') {
@@ -266,7 +278,10 @@ async function callOpenAI(prompt: string, key: string, base64?: string, mimeType
         })
     });
 
-    if (!response.ok) throw new Error(`OpenAI API error: ${response.status}`);
+    if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`OpenAI API error ${response.status}: ${errText}`);
+    }
     const data = await response.json();
     return data.choices?.[0]?.message?.content || '';
 }

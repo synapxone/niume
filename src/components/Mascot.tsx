@@ -15,26 +15,26 @@ const Mascot: React.FC<MascotProps> = ({ pose = 'neutral', size = 150, className
     // O mascote está centralizado em x=2438, olhos em y=1933
     const viewBox = bust ? "1600 700 1600 1600" : "0 0 4877 3599";
     const eyeVariantsLeft = {
-        neutral: { scaleY: 1, y: 0, d: "M2180,1950 q50,-60 100,0" },
-        happy: { scaleY: 0.8, y: 5, d: "M2180,1950 q50,-60 100,0" },
-        thinking: { y: -5, rotate: -5, d: "M2180,1950 q50,-60 100,0" },
-        waiting: { scaleY: [1, 0.1, 1], d: "M2180,1950 q50,-60 100,0", transition: { repeat: Infinity, duration: 3, times: [0, 0.1, 0.2] } },
-        workout: { scaleY: 1.1, y: 2, d: "M2180,1950 q50,-60 100,0" }
+        neutral: { scaleY: 1, scaleX: 1, y: 0, d: "M2180,1950 q50,-60 100,0" },
+        happy: { scaleY: 0.8, scaleX: 1, y: 5, d: "M2180,1950 q50,-60 100,0" },
+        thinking: { scaleY: 1, scaleX: 1, y: -5, rotate: -5, d: "M2180,1950 q50,-60 100,0" },
+        waiting: { scaleY: [1, 0.1, 1], scaleX: 1, d: "M2180,1950 q50,-60 100,0", transition: { repeat: Infinity, duration: 3, times: [0, 0.1, 0.2] } },
+        workout: { scaleY: 1.1, scaleX: 1, y: 2, d: "M2180,1950 q50,-60 100,0" }
     };
 
     const eyeVariantsRight = {
-        neutral: { scaleY: 1, y: 0, d: "M2500,1950 q50,-60 100,0" },
-        happy: { scaleY: 0.8, y: 5, d: "M2500,1950 q50,-60 100,0" },
-        thinking: { y: -5, rotate: 5, d: "M2500,1950 q50,-60 100,0" },
-        waiting: { scaleY: [1, 0.1, 1], d: "M2500,1950 q50,-60 100,0", transition: { repeat: Infinity, duration: 3, times: [0, 0.1, 0.2] } },
-        workout: { scaleY: 1.1, y: 2, d: "M2500,1950 q50,-60 100,0" }
+        neutral: { scaleY: 1, scaleX: 1, y: 0, d: "M2500,1950 q50,-60 100,0" },
+        happy: { scaleY: 0.8, scaleX: 1, y: 5, d: "M2500,1950 q50,-60 100,0" },
+        thinking: { scaleY: 1, scaleX: 1, y: -5, rotate: 5, d: "M2500,1950 q50,-60 100,0" },
+        waiting: { scaleY: [1, 0.1, 1], scaleX: 1, d: "M2500,1950 q50,-60 100,0", transition: { repeat: Infinity, duration: 3, times: [0, 0.1, 0.2] } },
+        workout: { scaleY: 1.1, scaleX: 1, y: 2, d: "M2500,1950 q50,-60 100,0" }
     };
 
     const mouthVariants = {
         neutral: { scaleX: 1, scaleY: 1, d: "M7400,2275 q150,120 300,0" },
         happy: { scaleX: 1.1, scaleY: 1.2, d: "M7400,2275 q150,160 300,0" },
-        thinking: { scaleX: 0.8, d: "M7400,2275 q150,20 300,0" },
-        workout: { scaleX: 1.05, d: "M7400,2275 q150,140 300,0" },
+        thinking: { scaleX: 0.8, scaleY: 1, d: "M7400,2275 q150,20 300,0" },
+        workout: { scaleX: 1.05, scaleY: 1, d: "M7400,2275 q150,140 300,0" },
         waiting: { scaleX: 1, scaleY: 0.95, d: "M7400,2275 q150,110 300,0" }
     };
 

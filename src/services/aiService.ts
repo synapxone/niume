@@ -30,7 +30,11 @@ const callAiService = async (action: string, payload: any) => {
     const { data, error } = await supabase.functions.invoke('ai-service', {
         body: { action, payload }
     });
-    if (error) throw error;
+
+    if (error) {
+        console.error(`[aiService] Action ${action} failed:`, error);
+        throw error;
+    }
     return data;
 };
 
