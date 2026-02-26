@@ -1038,66 +1038,50 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
                                 animate={{ strokeDashoffset: waterCircumference - (waterPct / 100) * waterCircumference }}
                                 transition={{ duration: 1.5, ease: "easeOut" }}
                                 strokeLinecap="round"
-                                style={{ opacity: 0.8 }}
+                                style={{ opacity: totals.calories > goal ? 0.3 : 0.8 }}
                             />
 
-                            {totals.calories > goal ? (
-                                /* Over goal - show faded/lighter ring */
+                            <g style={{ opacity: totals.calories > goal ? 0.3 : 1, transition: 'opacity 0.5s ease' }}>
+                                {/* Protein segment */}
                                 <motion.circle
                                     cx="80" cy="80" r="68" fill="none"
-                                    stroke="var(--accent)"
+                                    stroke="var(--proteina)"
                                     strokeWidth="12"
                                     strokeDasharray={circumference}
                                     initial={{ strokeDashoffset: circumference }}
-                                    animate={{ strokeDashoffset: 0 }}
+                                    animate={{ strokeDashoffset: circumference - (protItemPct / 100) * circumference }}
                                     transition={{ duration: 1.5, ease: "easeOut" }}
                                     strokeLinecap="round"
-                                    style={{ opacity: 0.2 }}
                                 />
-                            ) : (
-                                /* Under goal - segmented macro colors */
-                                <>
-                                    {/* Protein segment */}
+                                {/* Carbs segment */}
+                                {carbItemPct > 0 && (
                                     <motion.circle
                                         cx="80" cy="80" r="68" fill="none"
-                                        stroke="var(--proteina)"
+                                        stroke="var(--carbos)"
                                         strokeWidth="12"
                                         strokeDasharray={circumference}
                                         initial={{ strokeDashoffset: circumference }}
-                                        animate={{ strokeDashoffset: circumference - (protItemPct / 100) * circumference }}
-                                        transition={{ duration: 1.5, ease: "easeOut" }}
+                                        animate={{ strokeDashoffset: circumference - (carbItemPct / 100) * circumference }}
+                                        transition={{ duration: 1.5, ease: "easeOut", delay: 0.1 }}
                                         strokeLinecap="round"
+                                        transform={`rotate(${(protItemPct / 100) * 360} 80 80)`}
                                     />
-                                    {/* Carbs segment */}
-                                    {carbItemPct > 0 && (
-                                        <motion.circle
-                                            cx="80" cy="80" r="68" fill="none"
-                                            stroke="var(--carbos)"
-                                            strokeWidth="12"
-                                            strokeDasharray={circumference}
-                                            initial={{ strokeDashoffset: circumference }}
-                                            animate={{ strokeDashoffset: circumference - (carbItemPct / 100) * circumference }}
-                                            transition={{ duration: 1.5, ease: "easeOut", delay: 0.1 }}
-                                            strokeLinecap="round"
-                                            transform={`rotate(${(protItemPct / 100) * 360} 80 80)`}
-                                        />
-                                    )}
-                                    {/* Fat segment */}
-                                    {fatItemPct > 0 && (
-                                        <motion.circle
-                                            cx="80" cy="80" r="68" fill="none"
-                                            stroke="var(--gordura)"
-                                            strokeWidth="12"
-                                            strokeDasharray={circumference}
-                                            initial={{ strokeDashoffset: circumference }}
-                                            animate={{ strokeDashoffset: circumference - (fatItemPct / 100) * circumference }}
-                                            transition={{ duration: 1.5, ease: "easeOut", delay: 0.2 }}
-                                            strokeLinecap="round"
-                                            transform={`rotate(${((protItemPct + carbItemPct) / 100) * 360} 80 80)`}
-                                        />
-                                    )}
-                                </>
-                            )}
+                                )}
+                                {/* Fat segment */}
+                                {fatItemPct > 0 && (
+                                    <motion.circle
+                                        cx="80" cy="80" r="68" fill="none"
+                                        stroke="var(--gordura)"
+                                        strokeWidth="12"
+                                        strokeDasharray={circumference}
+                                        initial={{ strokeDashoffset: circumference }}
+                                        animate={{ strokeDashoffset: circumference - (fatItemPct / 100) * circumference }}
+                                        transition={{ duration: 1.5, ease: "easeOut", delay: 0.2 }}
+                                        strokeLinecap="round"
+                                        transform={`rotate(${((protItemPct + carbItemPct) / 100) * 360} 80 80)`}
+                                    />
+                                )}
+                            </g>
 
                             <defs>
                                 <linearGradient id="failGradient" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -1106,9 +1090,9 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
                                 </linearGradient>
                             </defs>
                         </svg>
-                        <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6">
+                        <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-2">
                             {totals.calories > goal ? (
-                                <p className="text-[10px] font-medium text-text-muted leading-relaxed italic animate-in fade-in duration-700">
+                                <p className="text-[13px] font-bold text-text-main leading-relaxed italic animate-in fade-in zoom-in-95 duration-700 max-w-[140px]">
                                     {MOTIVATIONAL_MESSAGES[randomMsgIndex]}
                                 </p>
                             ) : totals.calories === goal ? (
