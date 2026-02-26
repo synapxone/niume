@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="4877" height="3599" viewBox="0 0 4877 3599">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: #e4ff90;
+      }
+
+      .cls-1, .cls-2, .cls-3, .cls-4, .cls-5, .cls-6, .cls-8 {
+        fill-rule: evenodd;
+      }
+
+      .cls-2 {
+        fill: #7d5322;
+      }
+
+      .cls-3 {
+        fill: #889d3a;
+      }
+
+      .cls-4 {
+        fill: #ecffb2;
+      }
+
+      .cls-5 {
+        fill: #4e3262;
+      }
+
+      .cls-6 {
+        fill: #bd8ede;
+      }
+
+      .cls-7 {
+        font-size: 100px;
+        fill: #262626;
+        font-family: Quicksand;
+        font-weight: 600;
+      }
+
+      .cls-8 {
+        fill: none;
+        stroke: #262626;
+        stroke-linecap: round;
+        stroke-width: 40px;
+      }
+    </style>
+  </defs>
+  <g id="Prancheta_2" data-name="Prancheta 2">
+    <path id="Forma_1" data-name="Forma 1" class="cls-1" d="M7461,1034s-296.44-39.776-382.84,449.92c-59.95,176.86-220.08,386.58-220.08,386.58s-174.37,267.38,23.15,608.85c197.91,342.12,530,241.74,530,241.74a331.318,331.318,0,0,1,60.26-5.92" transform="translate(-4977)"/>
+    <path id="Forma_1_copiar" data-name="Forma 1 copiar" class="cls-1" d="M7456.74,1028.78s298.11-38.055,387.68,464.56c60.55,179.74,219.48,391.12,219.48,391.12s171.34,266.86-21.73,601.93c-191.15,331.73-514.66,234.1-514.66,234.1a325.4,325.4,0,0,0-58.74-5.84" transform="translate(-4977)"/>
+    <path id="Forma_2" data-name="Forma 2" class="cls-2" d="M7484,1085s-8.35,20.26-36,6c0,0-39.53-197.234,80-322,0,0,8.1-18.209,33,1,0,0,24.51,14.212,38,30,0,0,13.22,6.8-9,27,0,0-105.19,95.323-106,242v8l1,4Z" transform="translate(-4977)"/>
+    <path id="Forma_3" data-name="Forma 3" class="cls-3" d="M7555,1085s-69.43,54.21-177-1c0,0-19.13-8.05,0,9,0,0,82.38,65.28,182,0,0,0,11.98-9.25,1-10a4.909,4.909,0,0,0-5,1Z" transform="translate(-4977)"/>
+    <path id="Forma_4" data-name="Forma 4" class="cls-4" d="M7265,1276s-46.24,147.02-48,206-64.41,148.23-78,62,48-228,48-228l44-39,29-11Z" transform="translate(-4977)"/>
+    <path id="Forma_5" data-name="Forma 5" class="cls-4" d="M8093,2247s15.75,258.05-294,397-170.57-71.81,13-114,221.27-161.05,232-338,42,26,42,26Z" transform="translate(-4977)"/>
+    <path id="Forma_6" data-name="Forma 6" class="cls-5" d="M7180,1177s-20.53-1.5-30,20-36.12,51.24-55,169c0,0-13.73,23.94,29,25,0,0,350.72,14.95,688-4,0,0,17.5,2.62,18-30,0,0-4.4-96.7-68-176,0,0-5.14-7.29-24-4,0,0-258.91,28.18-539,1h-10Z" transform="translate(-4977)"/>
+    <path id="Forma_7" data-name="Forma 7" class="cls-6" d="M7141,1212s-35.49,57.27-42,138c0,0,489.32,22.13,730-1,0,0,.76-53.88-45-139C7784,1210,7499.34,1230.82,7141,1212Z" transform="translate(-4977)"/>
+    <text id="u" class="cls-7" transform="translate(2238.712 1933.289) scale(3.403)">u</text>
+    <path id="Forma_9" data-name="Forma 9" class="cls-8" d="M6811,2110s-326.01,54.44-190-298" transform="translate(-4977)"/>
+    <path id="Forma_10" data-name="Forma 10" class="cls-8" d="M8092,2067s201.2,15.5,125-277" transform="translate(-4977)"/>
+    <path id="Forma_11" data-name="Forma 11" class="cls-8" d="M7262,2701v211" transform="translate(-4977)"/>
+    <path id="Forma_12" data-name="Forma 12" class="cls-8" d="M7674,2722l-11,196" transform="translate(-4977)"/>
+    <text id="u-2" data-name="u" class="cls-7" transform="translate(2566.714 1933.289) scale(3.403)">u</text>
+    <path id="Forma_8" data-name="Forma 8" class="cls-8" d="M7460,2275s192.15,86.76,285-83" transform="translate(-4977)"/>
+  </g>
+</svg>
