@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Trash2, Plus, Camera, X, Loader2, ChevronLeft, ChevronRight, Sparkles, Activity, Database, TrendingUp, Barcode, Flame, Zap, CalendarDays, GlassWater, Pencil, Search, PlusCircle, History, Save } from 'lucide-react';
+import { Trash2, Plus, Camera, X, Loader2, ChevronLeft, ChevronRight, Sparkles, Activity, Database, TrendingUp, Barcode, Flame, Zap, CalendarDays, GlassWater, Pencil, Search, PlusCircle, History, Save, Quote } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { supabase } from '../lib/supabase';
 import { getLocalYYYYMMDD } from '../lib/dateUtils';
@@ -1090,11 +1090,26 @@ export default function NutritionLog({ profile, onUpdate, onNutritionChange }: P
                                 </linearGradient>
                             </defs>
                         </svg>
-                        <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-2">
+                        <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-4">
                             {totals.calories > goal ? (
-                                <p className="text-[13px] font-bold text-text-main leading-relaxed italic animate-in fade-in zoom-in-95 duration-700 max-w-[140px]">
-                                    {MOTIVATIONAL_MESSAGES[randomMsgIndex]}
-                                </p>
+                                <motion.div
+                                    initial={{ opacity: 0, scale: 0.9 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    className="relative flex flex-col items-center justify-center pt-2"
+                                >
+                                    {/* Large Stylish Background Quote */}
+                                    <div className="absolute -top-8 -left-3 opacity-[0.10] text-primary -rotate-12 pointer-events-none">
+                                        <Quote size={64} fill="currentColor" />
+                                    </div>
+
+                                    <p className="text-[16px] font-black text-text-main leading-tight italic relative z-10 tracking-tight drop-shadow-md">
+                                        {MOTIVATIONAL_MESSAGES[randomMsgIndex]}
+                                        <span className="text-primary font-serif not-italic ml-1 text-2xl inline-block align-middle">”</span>
+                                    </p>
+
+                                    {/* Subtle decorative dot for premium touch */}
+                                    <div className="w-6 h-0.5 rounded-full bg-primary/20 mt-3" />
+                                </motion.div>
                             ) : totals.calories === goal ? (
                                 <div className="flex flex-col items-center gap-1">
                                     <span className="text-[10px] font-black text-emerald-400 uppercase tracking-[0.2em] leading-tight">Meta<br />Batida</span>
